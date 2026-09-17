@@ -20,6 +20,11 @@
 			"key": "adminToken",
 			"value": "",
 			"type": "string"
+		},
+		{
+			"key": "customerId",
+			"value": "4159f7e5-f4a1-47b5-b2cd-cbc5a57b8f70",
+			"type": "string"
 		}
 	],
 	"item": [
@@ -994,7 +999,7 @@
 					"name": "Wallet Management",
 					"item": [
 						{
-							"name": "Adjust Customer Wallet",
+							"name": "Adjust Customer Wallet (Credit)",
 							"request": {
 								"method": "POST",
 								"header": [
@@ -1003,14 +1008,34 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"userId\": \"USER_ID_HERE\",\n  \"amount\": 100,\n  \"type\": \"CREDIT\",\n  \"description\": \"Promotional bonus for festive season\"\n}"
+									"raw": "{\n  \"userId\": \"{{customerId}}\",\n  \"amount\": 100,\n  \"type\": \"CREDIT\",\n  \"description\": \"Promotional bonus for festive season\"\n}"
 								},
 								"url": {
 									"raw": "{{baseUrl}}/api/v1/admin/wallet/adjust",
 									"host": ["{{baseUrl}}"],
 									"path": ["api", "v1", "admin", "wallet", "adjust"]
 								},
-								"description": "Manually credit or debit a customer's wallet. Type must be CREDIT or DEBIT. All fields are required."
+								"description": "Manually credit a customer's wallet. Uses {{customerId}} variable (default: Gokulvarthan 4159f7e5-f4a1-47b5-b2cd-cbc5a57b8f70). Automatically updates wallet balance and creates an audit ledger transaction."
+							}
+						},
+						{
+							"name": "Adjust Customer Wallet (Debit)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{ "key": "Content-Type", "value": "application/json" },
+									{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"userId\": \"{{customerId}}\",\n  \"amount\": 50,\n  \"type\": \"DEBIT\",\n  \"description\": \"Admin manual deduction\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/v1/admin/wallet/adjust",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "v1", "admin", "wallet", "adjust"]
+								},
+								"description": "Manually debit a customer's wallet. Fails if user does not have sufficient balance. Updates ledger."
 							}
 						}
 					]
