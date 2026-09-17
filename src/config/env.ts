@@ -19,6 +19,11 @@ export const ENV = {
     API_KEY: process.env.CLOUDINARY_API_KEY || '',
     API_SECRET: process.env.CLOUDINARY_API_SECRET || '',
   },
+  WHATSAPP: {
+    API_TOKEN: process.env.WHATSAPP_API_TOKEN || '',
+    PHONE_ID: process.env.WHATSAPP_PHONE_ID || '',
+    TEMPLATE_NAME: process.env.WHATSAPP_OTP_TEMPLATE || '',
+  },
   CUSTOMER_APP_URL: process.env.CUSTOMER_APP_URL || 'exp://localhost:8081',
   ADMIN_PANEL_URL: process.env.ADMIN_PANEL_URL || 'http://localhost:5173',
 };

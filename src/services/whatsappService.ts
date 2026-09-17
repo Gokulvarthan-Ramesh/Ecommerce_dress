@@ -23,23 +23,49 @@ export class WhatsAppService {
     const messageText = `Your verification code for your E-Commerce account is *${otp}*. Valid for 5 minutes. Do not share this OTP with anyone.`;
 
     // Check if live WhatsApp API credentials are configured in ENV
-    const metaToken = process.env.WHATSAPP_API_TOKEN;
-    const metaPhoneId = process.env.WHATSAPP_PHONE_ID;
+    const metaToken = ENV.WHATSAPP.API_TOKEN || process.env.WHATSAPP_API_TOKEN;
+    const metaPhoneId = ENV.WHATSAPP.PHONE_ID || process.env.WHATSAPP_PHONE_ID;
+    const templateName = ENV.WHATSAPP.TEMPLATE_NAME || process.env.WHATSAPP_OTP_TEMPLATE;
 
     if (metaToken && metaPhoneId) {
       try {
+        const payload = templateName
+          ? {
+              messaging_product: 'whatsapp',
+              recipient_type: 'individual',
+              to: formattedNumber,
+              type: 'template',
+              template: {
+                name: templateName,
+                language: { code: 'en_US' },
+                components: [
+                  {
+                    type: 'body',
+                    parameters: [{ type: 'text', text: otp }],
+                  },
+                  {
+                    type: 'button',
+                    sub_type: 'url',
+                    index: '0',
+                    parameters: [{ type: 'text', text: otp }],
+                  },
+                ],
+              },
+            }
+          : {
+              messaging_product: 'whatsapp',
+              to: formattedNumber,
+              type: 'text',
+              text: { body: messageText },
+            };
+
         const response = await fetch(`https://graph.facebook.com/v18.0/${metaPhoneId}/messages`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${metaToken}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            messaging_product: 'whatsapp',
-            to: formattedNumber,
-            type: 'text',
-            text: { body: messageText },
-          }),
+          body: JSON.stringify(payload),
         });
 
         const data = await response.json() as any;
