@@ -49,7 +49,7 @@ async function main() {
   console.log(`  🎟️  Coupons         : ${couponsCount}`);
   console.log('═══════════════════════════════════════════');
   console.log('\n  🔑 Test Credentials:');
-  console.log('  Admin    → admin@ecommerce.com / Admin@12345 (Phone: 9999999999)');
+  console.log('  Admin    → decodexfashionwear@gmail.com / Admin@12345 (Phone: 9999999999)');
   console.log('  Customer → customer@test.com / Test@12345 (Phone: 9876543210)\n');
 }
 

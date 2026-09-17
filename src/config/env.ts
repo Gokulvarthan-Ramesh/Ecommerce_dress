@@ -26,4 +26,8 @@ export const ENV = {
   },
   CUSTOMER_APP_URL: process.env.CUSTOMER_APP_URL || 'exp://localhost:8081',
   ADMIN_PANEL_URL: process.env.ADMIN_PANEL_URL || 'http://localhost:5173',
+  BRAND: {
+    NAME: process.env.BRAND_NAME || 'DecodeX Fashionwear',
+    EMAIL: process.env.BRAND_EMAIL || 'decodexfashionwear@gmail.com',
+  },
 };

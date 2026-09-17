@@ -192,7 +192,7 @@ Health check endpoint: `http://localhost:5000/health`
 *All admin endpoints require an administrative JWT (`role: "ADMIN"`).*
 
 ### Default Seeded Admin Credentials:
-- **Email**: `admin@ecommerce.com`
+- **Email**: `decodexfashionwear@gmail.com`
 - **Phone**: `9999999999`
 - **Password**: `Admin@12345`
 
@@ -227,7 +227,7 @@ A complete, pre-configured Postman collection is included:
 1. **Automated Token Management**: Running **Login** or **Admin Login** automatically parses the response token and populates `{{authToken}}` and `{{adminToken}}` collection variables.
 2. **Comprehensive Coverage**: Includes tests and sample payloads for Authentication, Category Hierarchy, Product Filters, Cart Management, Checkout & Orders, Customer Wallet, and all Admin Operations.
 3. **Seeded Test Accounts**:
-   - **Admin**: `admin@ecommerce.com` / `Admin@12345`
+   - **Admin**: `decodexfashionwear@gmail.com` / `Admin@12345`
    - **Customer**: `9876543210` / `Test@12345`
 
 ---

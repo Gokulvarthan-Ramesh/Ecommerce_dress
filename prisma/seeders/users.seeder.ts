@@ -7,11 +7,11 @@ export async function seedUsers(prisma: PrismaClient) {
   // 1. Admin User
   const adminPasswordHash = await bcrypt.hash('Admin@12345', 10);
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@ecommerce.com' },
-    update: {},
+    where: { email: 'decodexfashionwear@gmail.com' },
+    update: { email: 'decodexfashionwear@gmail.com' },
     create: {
-      name: 'System Administrator',
-      email: 'admin@ecommerce.com',
+      name: 'DecodeX Administrator',
+      email: 'decodexfashionwear@gmail.com',
       phone: '9999999999',
       passwordHash: adminPasswordHash,
       role: Role.ADMIN,
