@@ -7,8 +7,11 @@ import { CashfreeService } from '../services/cashfreeService';
 import { ReferralService } from '../services/referralService';
 import { NotificationService } from '../services/notificationService';
 import { GoogleDriveService } from '../services/googleDriveService';
+import { OrderService } from '../services/OrderService';
 import { OrderStatus, PaymentStatus, WalletTxCategory } from '@prisma/client';
 import { ApiResponse } from '../utils/response';
+
+const db = prisma as any;
 
 export class AdminController {
   /**
@@ -209,6 +212,7 @@ export class AdminController {
         isActive = true,
         images = [],
         variants = [],
+        shopId,
       } = req.body;
 
       if (!name || !slug || !categoryId || basePrice === undefined || sellingPrice === undefined) {
@@ -235,6 +239,7 @@ export class AdminController {
             buyingPrice,
             isFeatured,
             isActive,
+            ...(shopId !== undefined && { shopId }),
             images: {
               deleteMany: {},
               create: formattedImages.map((imageUrl, i) => ({ imageUrl, sortOrder: i, isPrimary: i === 0 }))
@@ -255,6 +260,7 @@ export class AdminController {
             buyingPrice,
             isFeatured,
             isActive,
+            ...(shopId !== undefined && { shopId }),
             images: {
               create: formattedImages.map((imageUrl, i) => ({ imageUrl, sortOrder: i, isPrimary: i === 0 }))
             }
@@ -347,6 +353,12 @@ export class AdminController {
             user: { select: { id: true, name: true, email: true, phone: true } },
             orderItems: true,
             payments: true,
+            subOrders: {
+              include: {
+                shop: { select: { name: true, slug: true } },
+                items: true,
+              }
+            }
           },
           orderBy: { createdAt: 'desc' },
           skip,
@@ -379,6 +391,12 @@ export class AdminController {
           payments: true,
           refunds: true,
           statusHistory: { orderBy: { createdAt: 'desc' } },
+          subOrders: {
+            include: {
+              shop: { select: { id: true, name: true, slug: true } },
+              items: true,
+            }
+          }
         },
       });
 
@@ -399,7 +417,7 @@ export class AdminController {
   static async updateOrderStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
-      const { status } = req.body;
+      const { status, courierPartner, trackingNumber, trackingUrl, estimatedDelivery, reason } = req.body;
 
       if (!status || !Object.values(OrderStatus).includes(status)) {
         throw new AppError('Valid order status is required');
@@ -413,6 +431,21 @@ export class AdminController {
         throw new AppError('Order not found', 404);
       }
 
+      // If Admin is cancelling, trigger full cancellation flow (restock, wallet refund, Cashfree refund)
+      if (status === OrderStatus.CANCELLED) {
+        await OrderService.cancelOrder(order.userId, id, reason || 'Order cancelled by administrator');
+        const cancelledOrder = await prisma.order.findUnique({
+          where: { id },
+          include: { payments: true, refunds: true, statusHistory: { orderBy: { createdAt: 'desc' } } },
+        });
+        ApiResponse.success(
+          res,
+          cancelledOrder,
+          'Order cancelled by admin. Inventory has been restocked and any payments/wallet amounts have been refunded.'
+        );
+        return;
+      }
+
       const updatedOrder = await prisma.$transaction(async (tx) => {
         const o = await tx.order.update({
           where: { id },
@@ -421,16 +454,26 @@ export class AdminController {
             ...(status === OrderStatus.DELIVERED && order.paymentMethod === 'COD' && {
               paymentStatus: PaymentStatus.SUCCESS,
             }),
+            ...(courierPartner !== undefined && { courierPartner }),
+            ...(trackingNumber !== undefined && { trackingNumber }),
+            ...(trackingUrl !== undefined && { trackingUrl }),
+            ...(estimatedDelivery !== undefined && { estimatedDelivery: estimatedDelivery ? new Date(estimatedDelivery) : null }),
           },
         });
+
+        const statusReason = reason || (
+          status === OrderStatus.SHIPPED && trackingNumber
+            ? `Shipped via ${courierPartner || 'Courier'} (AWB: ${trackingNumber})`
+            : `Status updated to ${status} by admin`
+        );
 
         await tx.orderStatusHistory.create({
           data: {
             orderId: o.id,
             oldStatus: order.status,
             newStatus: status,
-            changedBy: 'ADMIN', // Or req.user.id if available
-            reason: 'Status updated by admin',
+            changedBy: 'ADMIN',
+            reason: statusReason,
           },
         });
 
@@ -641,6 +684,112 @@ export class AdminController {
   }
 
   /**
+   * Toggle Offer active status
+   */
+  static async toggleOfferStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const offer = await prisma.offer.findUnique({ where: { id } });
+      if (!offer) throw new AppError('Offer not found', 404);
+
+      const updated = await prisma.offer.update({
+        where: { id },
+        data: { isActive: !offer.isActive },
+      });
+
+      ApiResponse.success(res, updated, `Offer is now ${updated.isActive ? 'ACTIVE' : 'INACTIVE'}`);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Delete Offer
+   */
+  static async deleteOffer(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      await prisma.offer.delete({ where: { id } });
+      ApiResponse.success(res, null, 'Offer deleted successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * View Admin Audit Logs
+   */
+  static async getAuditLogs(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { entity, page = '1', limit = '20' } = req.query;
+      const pageNum = parseInt(page as string, 10) || 1;
+      const limitNum = parseInt(limit as string, 10) || 20;
+      const skip = (pageNum - 1) * limitNum;
+
+      const where: any = {};
+      if (entity) where.entity = entity as string;
+
+      const [logs, total] = await Promise.all([
+        prisma.auditLog.findMany({
+          where,
+          include: { adminUser: { select: { id: true, name: true, email: true } } },
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take: limitNum,
+        }),
+        prisma.auditLog.count({ where }),
+      ]);
+
+      ApiResponse.success(res, {
+        logs,
+        pagination: { total, page: pageNum, limit: limitNum, totalPages: Math.ceil(total / limitNum) },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * View Inventory Transactions Ledger (Sales, Returns, Restocks, Adjustments)
+   */
+  static async getInventoryTransactions(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { variantId, type, page = '1', limit = '20' } = req.query;
+      const pageNum = parseInt(page as string, 10) || 1;
+      const limitNum = parseInt(limit as string, 10) || 20;
+      const skip = (pageNum - 1) * limitNum;
+
+      const where: any = {};
+      if (variantId) where.variantId = variantId as string;
+      if (type) where.type = type as string;
+
+      const [transactions, total] = await Promise.all([
+        prisma.inventoryTransaction.findMany({
+          where,
+          include: {
+            variant: {
+              include: {
+                product: { select: { id: true, name: true, slug: true } },
+              },
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take: limitNum,
+        }),
+        prisma.inventoryTransaction.count({ where }),
+      ]);
+
+      ApiResponse.success(res, {
+        transactions,
+        pagination: { total, page: pageNum, limit: limitNum, totalPages: Math.ceil(total / limitNum) },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Get detailed profile of a customer for the Admin Customer Page
    */
   static async getCustomerDetails(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -692,4 +841,1147 @@ export class AdminController {
       next(error);
     }
   }
+
+  /**
+   * List all registered customers with search, pagination, and order statistics
+   */
+  static async getCustomers(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { q, page = '1', limit = '20', isActive } = req.query;
+      const pageNum = parseInt(page as string, 10) || 1;
+      const limitNum = parseInt(limit as string, 10) || 20;
+      const skip = (pageNum - 1) * limitNum;
+
+      const where: any = { role: 'CUSTOMER' };
+      if (isActive !== undefined) {
+        where.isActive = isActive === 'true';
+      }
+      if (q) {
+        const queryStr = (q as string).trim();
+        where.OR = [
+          { name: { contains: queryStr, mode: 'insensitive' } },
+          { phone: { contains: queryStr } },
+          { email: { contains: queryStr, mode: 'insensitive' } },
+        ];
+      }
+
+      const [customers, total] = await Promise.all([
+        prisma.user.findMany({
+          where,
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            email: true,
+            isActive: true,
+            referralCode: true,
+            createdAt: true,
+            wallet: { select: { balance: true } },
+            _count: { select: { orders: true } },
+          },
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take: limitNum,
+        }),
+        prisma.user.count({ where }),
+      ]);
+
+      ApiResponse.success(res, {
+        customers: customers.map((c) => ({
+          ...c,
+          walletBalance: c.wallet ? Number(c.wallet.balance) : 0,
+          ordersCount: c._count.orders,
+        })),
+        pagination: { total, page: pageNum, limit: limitNum, totalPages: Math.ceil(total / limitNum) },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Block / Unblock customer account
+   */
+  static async toggleCustomerStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { isActive } = req.body;
+
+      const user = await prisma.user.findUnique({ where: { id } });
+      if (!user) throw new AppError('Customer not found', 404);
+
+      const newStatus = typeof isActive === 'boolean' ? isActive : !user.isActive;
+
+      const updated = await prisma.user.update({
+        where: { id },
+        data: { isActive: newStatus },
+      });
+
+      ApiResponse.success(
+        res,
+        { id: updated.id, name: updated.name, isActive: updated.isActive },
+        `Customer account is now ${newStatus ? 'ACTIVE' : 'BLOCKED / SUSPENDED'}`
+      );
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * List all promo discount coupons with usage metrics
+   */
+  static async getCoupons(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const coupons = await prisma.coupon.findMany({
+        orderBy: { createdAt: 'desc' },
+        include: { _count: { select: { usages: true, orders: true } } },
+      });
+      ApiResponse.success(res, coupons);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Create or Update Promo Coupon
+   */
+  static async saveCoupon(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const {
+        id,
+        code,
+        discountType,
+        discountValue,
+        minOrderAmount = 0,
+        maxDiscount,
+        usageLimit,
+        perUserLimit = 1,
+        expiresAt,
+        isActive = true,
+      } = req.body;
+
+      if (!code || !discountType || discountValue === undefined) {
+        throw new AppError('code, discountType (FIXED/PERCENTAGE), and discountValue are required', 400);
+      }
+
+      const formattedCode = code.toUpperCase().trim();
+
+      const coupon = await prisma.coupon.upsert({
+        where: { id: id || 'new-coupon' },
+        update: {
+          code: formattedCode,
+          discountType,
+          discountValue: Number(discountValue),
+          minOrderAmount: Number(minOrderAmount),
+          maxDiscount: maxDiscount ? Number(maxDiscount) : null,
+          usageLimit: usageLimit ? Number(usageLimit) : null,
+          perUserLimit: Number(perUserLimit),
+          expiresAt: expiresAt ? new Date(expiresAt) : null,
+          isActive,
+        },
+        create: {
+          code: formattedCode,
+          discountType,
+          discountValue: Number(discountValue),
+          minOrderAmount: Number(minOrderAmount),
+          maxDiscount: maxDiscount ? Number(maxDiscount) : null,
+          usageLimit: usageLimit ? Number(usageLimit) : null,
+          perUserLimit: Number(perUserLimit),
+          expiresAt: expiresAt ? new Date(expiresAt) : null,
+          isActive,
+        },
+      });
+
+      ApiResponse.success(res, coupon, 'Coupon saved successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Toggle Coupon active status
+   */
+  static async toggleCouponStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const coupon = await prisma.coupon.findUnique({ where: { id } });
+      if (!coupon) throw new AppError('Coupon not found', 404);
+
+      const updated = await prisma.coupon.update({
+        where: { id },
+        data: { isActive: !coupon.isActive },
+      });
+
+      ApiResponse.success(res, updated, `Coupon is now ${updated.isActive ? 'ACTIVE' : 'INACTIVE'}`);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Delete Coupon
+   */
+  static async deleteCoupon(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      await prisma.coupon.delete({ where: { id } });
+      ApiResponse.success(res, null, 'Coupon deleted successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * List all promotional home screen banners
+   */
+  static async getBanners(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const banners = await db.banner.findMany({
+        orderBy: { sortOrder: 'asc' },
+      });
+      ApiResponse.success(res, banners);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Create or Update Promotional Banner
+   */
+  static async saveBanner(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id, title, image, imageUrl, targetType = 'NONE', targetValue, sortOrder = 0, isActive = true } = req.body;
+
+      const rawImg = imageUrl || image;
+      if (!title || !rawImg) {
+        throw new AppError('Banner title and imageUrl are required', 400);
+      }
+
+      const formattedImage = GoogleDriveService.formatToDirectImageUrl(rawImg);
+
+      const banner = await db.banner.upsert({
+        where: { id: id || 'new-banner' },
+        update: {
+          title,
+          imageUrl: formattedImage,
+          targetType,
+          targetValue,
+          sortOrder: Number(sortOrder),
+          isActive,
+        },
+        create: {
+          title,
+          imageUrl: formattedImage,
+          targetType,
+          targetValue,
+          sortOrder: Number(sortOrder),
+          isActive,
+        },
+      });
+
+      ApiResponse.success(res, banner, 'Banner saved successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Toggle Banner Active Status
+   */
+  static async toggleBannerStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const banner = await db.banner.findUnique({ where: { id } });
+      if (!banner) throw new AppError('Banner not found', 404);
+
+      const updated = await db.banner.update({
+        where: { id },
+        data: { isActive: !banner.isActive },
+      });
+
+      ApiResponse.success(res, updated, `Banner is now ${updated.isActive ? 'ACTIVE' : 'INACTIVE'}`);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Delete Banner
+   */
+  static async deleteBanner(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      await db.banner.delete({ where: { id } });
+      ApiResponse.success(res, null, 'Banner deleted successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Admin Catalog Listing with stock levels, cost prices, and inactive products
+   */
+  static async getProducts(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { q, categoryId, shopId, lowStock, page = '1', limit = '20' } = req.query;
+      const pageNum = parseInt(page as string, 10) || 1;
+      const limitNum = parseInt(limit as string, 10) || 20;
+      const skip = (pageNum - 1) * limitNum;
+
+      const where: any = {};
+      if (categoryId) where.categoryId = categoryId as string;
+      if (shopId) where.shopId = shopId as string;
+      if (q) {
+        where.OR = [
+          { name: { contains: q as string, mode: 'insensitive' } },
+          { slug: { contains: q as string, mode: 'insensitive' } },
+        ];
+      }
+      if (lowStock === 'true') {
+        where.variants = { some: { stockQuantity: { lte: 5 } } };
+      }
+
+      const [products, total] = await Promise.all([
+        prisma.product.findMany({
+          where,
+          include: {
+            category: { select: { id: true, name: true } },
+            shop: { select: { id: true, name: true, slug: true } },
+            images: { orderBy: { sortOrder: 'asc' } },
+            variants: true,
+            _count: { select: { orderItems: true } },
+          },
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take: limitNum,
+        }),
+        prisma.product.count({ where }),
+      ]);
+
+      const data = products.map((p) => {
+        const totalStock = p.variants.reduce((sum, v) => sum + v.stockQuantity, 0);
+        return {
+          ...p,
+          totalStock,
+          variantsCount: p.variants.length,
+          ordersCount: p._count.orderItems,
+        };
+      });
+
+      ApiResponse.success(res, {
+        products: data,
+        pagination: { total, page: pageNum, limit: limitNum, totalPages: Math.ceil(total / limitNum) },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Toggle Product Active/Inactive (Draft or Live)
+   */
+  static async toggleProductStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const product = await prisma.product.findUnique({ where: { id } });
+      if (!product) throw new AppError('Product not found', 404);
+
+      const updated = await prisma.product.update({
+        where: { id },
+        data: { isActive: !product.isActive },
+      });
+
+      ApiResponse.success(res, updated, `Product "${updated.name}" is now ${updated.isActive ? 'ACTIVE' : 'INACTIVE'}`);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Delete Product (Safely prevents deletion if order history exists)
+   */
+  static async deleteProduct(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const product = await prisma.product.findUnique({
+        where: { id },
+        include: { _count: { select: { orderItems: true } } },
+      });
+
+      if (!product) throw new AppError('Product not found', 404);
+      if (product._count.orderItems > 0) {
+        throw new AppError(
+          `Cannot delete product. It is associated with ${product._count.orderItems} existing customer order(s). Deactivate it instead.`,
+          400
+        );
+      }
+
+      await prisma.product.delete({ where: { id } });
+      ApiResponse.success(res, null, 'Product deleted successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * View all return requests
+   */
+  static async getReturnRequests(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const returns = await db.order.findMany({
+        where: {
+          OR: [
+            { status: OrderStatus.RETURN_REQUESTED },
+            { returnStatus: { in: ['REQUESTED', 'APPROVED', 'REJECTED', 'PICKED_UP', 'COMPLETED'] } },
+          ],
+        },
+        include: {
+          user: { select: { id: true, name: true, phone: true, email: true } },
+          orderItems: true,
+          payments: true,
+        },
+        orderBy: { updatedAt: 'desc' },
+      });
+      ApiResponse.success(res, returns);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Process return request (Approve, Reject, Complete)
+   */
+  static async processReturnRequest(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { action, adminRemarks } = req.body;
+
+      const order = await prisma.order.findUnique({ where: { id }, include: { payments: true } });
+      if (!order) throw new AppError('Order not found', 404);
+
+      if (action === 'APPROVE') {
+        const updated = await prisma.$transaction(async (tx: any) => {
+          const o = await tx.order.update({
+            where: { id },
+            data: { returnStatus: 'APPROVED' },
+          });
+          await tx.orderStatusHistory.create({
+            data: {
+              orderId: id,
+              oldStatus: order.status,
+              newStatus: order.status,
+              changedBy: 'ADMIN',
+              reason: `Return request approved. Reverse pickup scheduled. ${adminRemarks || ''}`,
+            },
+          });
+          return o;
+        });
+
+        NotificationService.create({
+          userId: order.userId,
+          type: 'ORDER_UPDATE' as any,
+          title: 'Return Request Approved',
+          message: `Your return request for order #${order.orderNumber} has been approved. Reverse pickup will be arranged soon.`,
+        }).catch(() => {});
+
+        ApiResponse.success(res, updated, 'Return request approved');
+      } else if (action === 'REJECT') {
+        const updated = await prisma.$transaction(async (tx: any) => {
+          const o = await tx.order.update({
+            where: { id },
+            data: {
+              status: OrderStatus.DELIVERED,
+              returnStatus: 'REJECTED',
+            },
+          });
+          await tx.orderStatusHistory.create({
+            data: {
+              orderId: id,
+              oldStatus: OrderStatus.RETURN_REQUESTED,
+              newStatus: OrderStatus.DELIVERED,
+              changedBy: 'ADMIN',
+              reason: `Return request rejected: ${adminRemarks || 'Conditions not met'}`,
+            },
+          });
+          return o;
+        });
+        ApiResponse.success(res, updated, 'Return request rejected');
+      } else if (action === 'COMPLETE') {
+        const updated = await prisma.$transaction(async (tx: any) => {
+          const o = await tx.order.update({
+            where: { id },
+            data: {
+              status: OrderStatus.RETURNED,
+              returnStatus: 'COMPLETED',
+            },
+          });
+          await tx.orderStatusHistory.create({
+            data: {
+              orderId: id,
+              oldStatus: order.status,
+              newStatus: OrderStatus.RETURNED,
+              changedBy: 'ADMIN',
+              reason: `Return verified at warehouse. ${adminRemarks || ''}`,
+            },
+          });
+          return o;
+        });
+        ApiResponse.success(res, updated, 'Return completed. You can now issue a refund via Cashfree or Wallet.');
+      } else {
+        throw new AppError('Invalid action. Use APPROVE, REJECT, or COMPLETE', 400);
+      }
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Broadcast in-app promotional notice or announcement to all active customers
+   */
+  static async broadcastNotification(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { title, message, type = 'PROMO' } = req.body;
+      if (!title || !message) {
+        throw new AppError('title and message are required', 400);
+      }
+
+      const activeUsers = await prisma.user.findMany({
+        where: { role: 'CUSTOMER', isActive: true },
+        select: { id: true },
+      });
+
+      if (activeUsers.length > 0) {
+        await prisma.notification.createMany({
+          data: activeUsers.map((u) => ({
+            userId: u.id,
+            title,
+            message,
+            type,
+          })),
+        });
+      }
+
+      ApiResponse.success(
+        res,
+        { recipientCount: activeUsers.length },
+        `Broadcast announcement sent to ${activeUsers.length} customer(s)`
+      );
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Admin: List all categories (with product count, subcategories count, and parent)
+   */
+  static async getCategories(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const categories = await prisma.category.findMany({
+        include: {
+          parent: { select: { id: true, name: true } },
+          _count: { select: { products: true, children: true } },
+        },
+        orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      });
+      ApiResponse.success(res, categories);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Admin: Get single category by ID
+   */
+  static async getCategoryById(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const category = await prisma.category.findUnique({
+        where: { id },
+        include: {
+          parent: true,
+          children: true,
+          products: {
+            take: 20,
+            select: { id: true, name: true, slug: true, sellingPrice: true, isActive: true },
+          },
+          _count: { select: { products: true, children: true } },
+        },
+      });
+      if (!category) throw new AppError('Category not found', 404);
+      ApiResponse.success(res, category);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Admin: Update category by ID
+   */
+  static async updateCategory(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { name, slug, description, image, imageUrl, level, sortOrder, parentId, isActive } = req.body;
+
+      const existing = await prisma.category.findUnique({ where: { id } });
+      if (!existing) throw new AppError('Category not found', 404);
+
+      const rawImg = imageUrl || image;
+      let formattedImage = rawImg !== undefined ? (rawImg ? GoogleDriveService.formatToDirectImageUrl(rawImg) : null) : undefined;
+
+      const updated = await prisma.category.update({
+        where: { id },
+        data: {
+          ...(name !== undefined && { name: name.trim() }),
+          ...(slug !== undefined && { slug: slug.trim() }),
+          ...(description !== undefined && { description }),
+          ...(formattedImage !== undefined && { imageUrl: formattedImage }),
+          ...(level !== undefined && { level: Number(level) }),
+          ...(sortOrder !== undefined && { sortOrder: Number(sortOrder) }),
+          ...(parentId !== undefined && { parentId }),
+          ...(isActive !== undefined && { isActive }),
+        },
+      });
+
+      ApiResponse.success(res, updated, 'Category updated successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Admin: Get single product by ID (full details, variants, images, stock)
+   */
+  static async getProductById(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const product = await prisma.product.findUnique({
+        where: { id },
+        include: {
+          category: true,
+          images: { orderBy: { sortOrder: 'asc' } },
+          variants: {
+            orderBy: [{ size: 'asc' }, { color: 'asc' }],
+          },
+          _count: { select: { orderItems: true } },
+        },
+      });
+      if (!product) throw new AppError('Product not found', 404);
+
+      const totalStock = product.variants.reduce((sum, v) => sum + v.stockQuantity, 0);
+
+      ApiResponse.success(res, {
+        ...product,
+        totalStock,
+        variantsCount: product.variants.length,
+        ordersCount: product._count.orderItems,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Admin: Update product details by ID
+   */
+  static async updateProduct(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const {
+        name,
+        slug,
+        description,
+        brand,
+        fabric,
+        fit,
+        sleeve,
+        pattern,
+        categoryId,
+        basePrice,
+        sellingPrice,
+        buyingPrice,
+        isFeatured,
+        isActive,
+        images,
+      } = req.body;
+
+      const existing = await prisma.product.findUnique({ where: { id } });
+      if (!existing) throw new AppError('Product not found', 404);
+
+      const formattedImages = images ? GoogleDriveService.formatImageUrls(images) : undefined;
+
+      const updated = await prisma.$transaction(async (tx) => {
+        if (formattedImages) {
+          await tx.productImage.deleteMany({ where: { productId: id } });
+          await tx.productImage.createMany({
+            data: formattedImages.map((imageUrl, i) => ({
+              productId: id,
+              imageUrl,
+              sortOrder: i,
+              isPrimary: i === 0,
+            })),
+          });
+        }
+
+        return tx.product.update({
+          where: { id },
+          data: {
+            ...(name !== undefined && { name }),
+            ...(slug !== undefined && { slug }),
+            ...(description !== undefined && { description }),
+            ...(brand !== undefined && { brand }),
+            ...(fabric !== undefined && { fabric }),
+            ...(fit !== undefined && { fit }),
+            ...(sleeve !== undefined && { sleeve }),
+            ...(pattern !== undefined && { pattern }),
+            ...(categoryId !== undefined && { categoryId }),
+            ...(basePrice !== undefined && { basePrice }),
+            ...(sellingPrice !== undefined && { sellingPrice }),
+            ...(buyingPrice !== undefined && { buyingPrice }),
+            ...(isFeatured !== undefined && { isFeatured }),
+            ...(isActive !== undefined && { isActive }),
+          },
+          include: {
+            category: true,
+            images: { orderBy: { sortOrder: 'asc' } },
+            variants: true,
+          },
+        });
+      });
+
+      ApiResponse.success(res, updated, 'Product updated successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Admin: List variants of a product
+   */
+  static async getProductVariants(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { productId } = req.params;
+      const variants = await prisma.productVariant.findMany({
+        where: { productId },
+        orderBy: [{ size: 'asc' }, { color: 'asc' }],
+      });
+      ApiResponse.success(res, variants);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Admin: Create variant for a product
+   */
+  static async createProductVariant(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { productId } = req.params;
+      const { sku, size, color, colorHex, price, stockQuantity = 0, isActive = true } = req.body;
+
+      if (!sku || !size || !color) {
+        throw new AppError('sku, size, and color are required', 400);
+      }
+
+      const product = await prisma.product.findUnique({ where: { id: productId } });
+      if (!product) throw new AppError('Product not found', 404);
+
+      const variant = await prisma.productVariant.create({
+        data: {
+          productId,
+          sku: sku.trim(),
+          size: size.trim(),
+          color: color.trim(),
+          colorHex: colorHex ? colorHex.trim() : null,
+          price: price !== undefined ? price : 0,
+          stockQuantity: Number(stockQuantity),
+          isActive,
+        },
+      });
+
+      ApiResponse.success(res, variant, 'Variant created successfully', 201);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Admin: Get single variant by ID
+   */
+  static async getVariantById(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { variantId } = req.params;
+      const variant = await prisma.productVariant.findUnique({
+        where: { id: variantId },
+        include: { product: { select: { id: true, name: true, slug: true } } },
+      });
+      if (!variant) throw new AppError('Variant not found', 404);
+      ApiResponse.success(res, variant);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Admin: Update variant by ID
+   */
+  static async updateProductVariant(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { variantId } = req.params;
+      const { sku, size, color, colorHex, price, stockQuantity, isActive } = req.body;
+
+      const existing = await prisma.productVariant.findUnique({ where: { id: variantId } });
+      if (!existing) throw new AppError('Variant not found', 404);
+
+      const updated = await prisma.productVariant.update({
+        where: { id: variantId },
+        data: {
+          ...(sku !== undefined && { sku: sku.trim() }),
+          ...(size !== undefined && { size: size.trim() }),
+          ...(color !== undefined && { color: color.trim() }),
+          ...(colorHex !== undefined && { colorHex }),
+          ...(price !== undefined && { price }),
+          ...(stockQuantity !== undefined && { stockQuantity: Number(stockQuantity) }),
+          ...(isActive !== undefined && { isActive }),
+        },
+      });
+
+      ApiResponse.success(res, updated, 'Variant updated successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Admin: Delete variant by ID
+   */
+  static async deleteProductVariant(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { variantId } = req.params;
+      const variant = await prisma.productVariant.findUnique({
+        where: { id: variantId },
+        include: { _count: { select: { orderItems: true, cartItems: true } } },
+      });
+      if (!variant) throw new AppError('Variant not found', 404);
+
+      if (variant._count.orderItems > 0) {
+        throw new AppError(`Cannot delete variant with ${variant._count.orderItems} existing orders. Deactivate it instead.`, 400);
+      }
+
+      await prisma.productVariant.delete({ where: { id: variantId } });
+      ApiResponse.success(res, null, 'Variant deleted successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Admin: Get single banner by ID
+   */
+  static async getBannerById(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const banner = await db.banner.findUnique({ where: { id } });
+      if (!banner) throw new AppError('Banner not found', 404);
+      ApiResponse.success(res, banner);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Admin: Update banner by ID
+   */
+  static async updateBanner(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { title, image, imageUrl, targetType, targetValue, sortOrder, isActive } = req.body;
+
+      const existing = await db.banner.findUnique({ where: { id } });
+      if (!existing) throw new AppError('Banner not found', 404);
+
+      const rawImg = imageUrl || image;
+      const formattedImage = rawImg ? GoogleDriveService.formatToDirectImageUrl(rawImg) : undefined;
+
+      const updated = await db.banner.update({
+        where: { id },
+        data: {
+          ...(title !== undefined && { title }),
+          ...(formattedImage !== undefined && { imageUrl: formattedImage }),
+          ...(targetType !== undefined && { targetType }),
+          ...(targetValue !== undefined && { targetValue }),
+          ...(sortOrder !== undefined && { sortOrder: Number(sortOrder) }),
+          ...(isActive !== undefined && { isActive }),
+        },
+      });
+
+      ApiResponse.success(res, updated, 'Banner updated successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Admin: Get single offer by ID
+   */
+  static async getOfferById(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const offer = await prisma.offer.findUnique({
+        where: { id },
+        include: { _count: { select: { usages: true, orders: true } } },
+      });
+      if (!offer) throw new AppError('Offer not found', 404);
+      ApiResponse.success(res, offer);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Admin: Update offer by ID
+   */
+  static async updateOffer(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { name, type, value, minimumOrderAmount, firstOrderOnly, perUserLimit, usageLimit, startAt, endAt, isActive } = req.body;
+
+      const existing = await prisma.offer.findUnique({ where: { id } });
+      if (!existing) throw new AppError('Offer not found', 404);
+
+      const updated = await prisma.offer.update({
+        where: { id },
+        data: {
+          ...(name !== undefined && { name }),
+          ...(type !== undefined && { type }),
+          ...(value !== undefined && { value }),
+          ...(minimumOrderAmount !== undefined && { minimumOrderAmount }),
+          ...(firstOrderOnly !== undefined && { firstOrderOnly }),
+          ...(perUserLimit !== undefined && { perUserLimit }),
+          ...(usageLimit !== undefined && { usageLimit }),
+          ...(startAt !== undefined && { startAt: startAt ? new Date(startAt) : null }),
+          ...(endAt !== undefined && { endAt: endAt ? new Date(endAt) : null }),
+          ...(isActive !== undefined && { isActive }),
+        },
+      });
+
+      ApiResponse.success(res, updated, 'Offer updated successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Admin: Get single coupon by ID
+   */
+  static async getCouponById(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const coupon = await prisma.coupon.findUnique({
+        where: { id },
+        include: { _count: { select: { usages: true, orders: true } } },
+      });
+      if (!coupon) throw new AppError('Coupon not found', 404);
+      ApiResponse.success(res, coupon);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Admin: Update coupon by ID
+   */
+  static async updateCoupon(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { code, discountType, discountValue, minOrderAmount, maxDiscount, usageLimit, perUserLimit, expiresAt, isActive } = req.body;
+
+      const existing = await prisma.coupon.findUnique({ where: { id } });
+      if (!existing) throw new AppError('Coupon not found', 404);
+
+      const updated = await prisma.coupon.update({
+        where: { id },
+        data: {
+          ...(code !== undefined && { code: code.toUpperCase().trim() }),
+          ...(discountType !== undefined && { discountType }),
+          ...(discountValue !== undefined && { discountValue: Number(discountValue) }),
+          ...(minOrderAmount !== undefined && { minOrderAmount: Number(minOrderAmount) }),
+          ...(maxDiscount !== undefined && { maxDiscount: maxDiscount ? Number(maxDiscount) : null }),
+          ...(usageLimit !== undefined && { usageLimit: usageLimit ? Number(usageLimit) : null }),
+          ...(perUserLimit !== undefined && { perUserLimit: Number(perUserLimit) }),
+          ...(expiresAt !== undefined && { expiresAt: expiresAt ? new Date(expiresAt) : null }),
+          ...(isActive !== undefined && { isActive }),
+        },
+      });
+
+      ApiResponse.success(res, updated, 'Coupon updated successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Admin: Create customer account manually
+   */
+  static async createCustomer(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { name, phone, email } = req.body;
+      if (!name || !phone) {
+        throw new AppError('Name and phone number are required', 400);
+      }
+
+      const cleanPhone = phone.replace(/[^0-9]/g, '').slice(-10);
+      const existing = await prisma.user.findFirst({
+        where: { OR: [{ phone: cleanPhone }, ...(email ? [{ email: email.trim() }] : [])] },
+      });
+
+      if (existing) {
+        throw new AppError('Customer with this phone or email already exists', 400);
+      }
+
+      const crypto = require('crypto');
+      const referralCode = `${name.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, 'X')}${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+
+      const user = await prisma.user.create({
+        data: {
+          name: name.trim(),
+          phone: cleanPhone,
+          email: email ? email.trim() : null,
+          role: 'CUSTOMER',
+          referralCode,
+          wallet: { create: { balance: 0.0 } },
+        },
+      });
+
+      ApiResponse.success(res, user, 'Customer created successfully', 201);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Admin: Update customer details by ID
+   */
+  static async updateCustomer(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { name, email, phone, isActive } = req.body;
+
+      const existing = await prisma.user.findUnique({ where: { id } });
+      if (!existing) throw new AppError('Customer not found', 404);
+
+      const cleanPhone = phone ? phone.replace(/[^0-9]/g, '').slice(-10) : undefined;
+
+      const updated = await prisma.user.update({
+        where: { id },
+        data: {
+          ...(name !== undefined && { name: name.trim() }),
+          ...(email !== undefined && { email: email.trim() }),
+          ...(cleanPhone !== undefined && { phone: cleanPhone }),
+          ...(isActive !== undefined && { isActive }),
+        },
+      });
+
+      ApiResponse.success(res, updated, 'Customer updated successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Admin: Delete customer account
+   */
+  static async deleteCustomer(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const user = await prisma.user.findUnique({
+        where: { id },
+        include: { _count: { select: { orders: true } } },
+      });
+      if (!user) throw new AppError('Customer not found', 404);
+
+      if (user._count.orders > 0) {
+        await prisma.user.update({ where: { id }, data: { isActive: false } });
+        ApiResponse.success(res, null, `Customer has ${user._count.orders} order(s). Account deactivated/suspended instead of permanent deletion.`);
+        return;
+      }
+
+      await prisma.user.delete({ where: { id } });
+      ApiResponse.success(res, null, 'Customer account deleted permanently');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Admin: Delete / Cancel order
+   */
+  static async deleteOrder(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { reason = 'Order deleted by admin' } = req.body || {};
+
+      const order = await prisma.order.findUnique({
+        where: { id },
+        include: { orderItems: true },
+      });
+      if (!order) throw new AppError('Order not found', 404);
+
+      if (order.status !== OrderStatus.CANCELLED && order.status !== OrderStatus.DELIVERED) {
+        await OrderService.cancelOrder(order.userId, id, reason);
+      }
+
+      ApiResponse.success(res, null, 'Order cancelled and archived successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Admin: Get single system setting by key
+   */
+  static async getSystemSettingByKey(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { key } = req.params;
+      const setting = await prisma.systemSetting.findUnique({ where: { key } });
+      if (!setting) {
+        const defaultVal = await SystemSettingService.getSetting(key, null);
+        ApiResponse.success(res, { key, value: defaultVal, isDefault: true });
+        return;
+      }
+      ApiResponse.success(res, setting);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Admin: Create custom system setting
+   */
+  static async createSystemSetting(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { key, value, description } = req.body;
+      if (!key || value === undefined) {
+        throw new AppError('key and value are required', 400);
+      }
+
+      const setting = await SystemSettingService.updateSetting(key, value, description);
+      ApiResponse.success(res, setting, `Setting "${key}" created successfully`, 201);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Admin: Delete custom system setting
+   */
+  static async deleteSystemSetting(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { key } = req.params;
+      await SystemSettingService.deleteSetting(key).catch(() => {});
+      ApiResponse.success(res, null, `Setting "${key}" removed / reset to system defaults`);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
+

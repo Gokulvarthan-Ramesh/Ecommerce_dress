@@ -5,7 +5,8 @@ import { WalletService } from './walletService';
 import { OfferService } from './offerService';
 import { CashfreeService } from './cashfreeService';
 import { SystemSettingService } from './systemSettingService';
-import { OrderStatus, PaymentMethod, PaymentStatus, WalletTxCategory } from '@prisma/client';
+import { OrderStatus, PaymentMethod, PaymentStatus, WalletTxCategory, SubOrderStatus } from '@prisma/client';
+
 
 export class CheckoutService {
   /**
@@ -65,6 +66,7 @@ export class CheckoutService {
       orderItemsData.push({
         productId: product.id,
         variantId: variant.id,
+        shopId: product.shopId || null,
         productName: product.name,
         sku: variant.sku,
         size: variant.size,
@@ -74,6 +76,7 @@ export class CheckoutService {
         totalPrice,
       });
     }
+
 
     // 9. Find applicable auto-applied offer
     const offerResult = await OfferService.calculateDiscount(userId, subtotal);
@@ -152,7 +155,7 @@ export class CheckoutService {
   }
 
   static async processCheckout(userId: string, body: any) {
-    const { shippingAddress, paymentMethod = 'CASHFREE' } = body;
+    const { addressId, shippingAddress, paymentMethod = 'CASHFREE' } = body;
     
     // Steps 1-15
     const preview = await this.previewCheckout(userId, body);
@@ -171,23 +174,34 @@ export class CheckoutService {
       user
     } = preview;
 
-    const addressName = shippingAddress?.name || shippingAddress?.fullName;
-    const addressPincode = shippingAddress?.pincode || shippingAddress?.postalCode;
+    let targetAddress = shippingAddress;
+    if (addressId) {
+      const saved = await prisma.address.findFirst({
+        where: { id: addressId, userId },
+      });
+      if (!saved) {
+        throw new AppError('Selected delivery address not found', 404);
+      }
+      targetAddress = saved;
+    }
 
-    if (!shippingAddress || !addressName || !addressPincode) {
+    const addressName = targetAddress?.name || targetAddress?.fullName;
+    const addressPincode = targetAddress?.pincode || targetAddress?.postalCode;
+
+    if (!targetAddress || !addressName || !addressPincode) {
       throw new AppError('Complete shipping address is required (name, phone, addressLine1, city, state, pincode)');
     }
 
     const normalizedAddress = {
       name: addressName,
-      phone: shippingAddress.phone || user.phone,
-      addressLine1: shippingAddress.addressLine1,
-      addressLine2: shippingAddress.addressLine2 || null,
-      city: shippingAddress.city,
-      district: shippingAddress.district || shippingAddress.city,
-      state: shippingAddress.state,
+      phone: targetAddress.phone || user.phone,
+      addressLine1: targetAddress.addressLine1,
+      addressLine2: targetAddress.addressLine2 || null,
+      city: targetAddress.city,
+      district: targetAddress.district || targetAddress.city,
+      state: targetAddress.state,
       pincode: addressPincode,
-      country: shippingAddress.country || 'India',
+      country: targetAddress.country || 'India',
     };
 
     const paymentsConfig = await SystemSettingService.getPaymentsConfig();
@@ -228,6 +242,21 @@ export class CheckoutService {
         }
       }
 
+      // Determine fallback flagship store if product has no shopId
+      const fallbackShop = await tx.shop.findFirst({ where: { slug: 'decodex-flagship' } })
+        || await tx.shop.findFirst({ where: { status: 'ACTIVE' } });
+      const defaultShopId = fallbackShop ? fallbackShop.id : null;
+
+      // Group items by shopId
+      const shopMap = new Map<string, typeof orderItemsData>();
+      for (const it of orderItemsData) {
+        const sId = it.shopId || defaultShopId;
+        const key = sId || 'unknown';
+        if (!shopMap.has(key)) shopMap.set(key, []);
+        shopMap.get(key)!.push(it);
+      }
+
+      // 1. Create Parent Order
       const newOrder = await tx.order.create({
         data: {
           orderNumber,
@@ -245,13 +274,64 @@ export class CheckoutService {
           addressSnapshot: normalizedAddress,
           appliedOfferId,
           appliedCouponId,
-          // 17. Create order items
-          orderItems: {
-            create: orderItemsData,
-          },
         },
-        include: { orderItems: true },
       });
+
+      // 2. Create Sub-Orders per Shop (Multi-Vendor Unified Cart)
+      let subCounter = 1;
+      const createdSubOrders = [];
+
+      for (const [sId, items] of shopMap.entries()) {
+        let shop = null;
+        if (sId !== 'unknown') {
+          shop = await tx.shop.findUnique({ where: { id: sId } });
+        }
+
+        const shopCommissionRate = shop ? Number(shop.commissionRate) : 10;
+        const shopSubtotal = items.reduce((acc, curr) => acc + curr.totalPrice, 0);
+        const commissionAmount = Math.round(((shopSubtotal * shopCommissionRate) / 100) * 100) / 100;
+        const shopPayoutAmount = Math.max(0, shopSubtotal - commissionAmount);
+        const subOrderNumber = `${orderNumber}-S${subCounter++}`;
+
+        let subOrder = null;
+        if (shop) {
+          subOrder = await tx.subOrder.create({
+            data: {
+              subOrderNumber,
+              parentOrderId: newOrder.id,
+              shopId: shop.id,
+              status: isCOD || isFreeOrder ? SubOrderStatus.CONFIRMED : SubOrderStatus.CONFIRMED,
+              subtotal: shopSubtotal,
+              shippingFee: 0,
+              commissionRate: shopCommissionRate,
+              commissionAmount,
+              shopPayoutAmount,
+            },
+          });
+          createdSubOrders.push(subOrder);
+        }
+
+        // Create OrderItems linked to both Parent Order and Sub-Order
+        for (const item of items) {
+          await tx.orderItem.create({
+            data: {
+              orderId: newOrder.id,
+              subOrderId: subOrder ? subOrder.id : null,
+              shopId: shop ? shop.id : null,
+              productId: item.productId,
+              variantId: item.variantId,
+              productName: item.productName,
+              sku: item.sku,
+              size: item.size,
+              color: item.color,
+              unitPrice: item.unitPrice,
+              quantity: item.quantity,
+              totalPrice: item.totalPrice,
+            },
+          });
+        }
+      }
+
 
       await tx.orderStatusHistory.create({
         data: {
@@ -289,7 +369,19 @@ export class CheckoutService {
         }
       }
 
-      return newOrder;
+      const fullOrder = await tx.order.findUnique({
+        where: { id: newOrder.id },
+        include: {
+          subOrders: {
+            include: {
+              shop: { select: { id: true, name: true, slug: true } },
+              items: true,
+            },
+          },
+        },
+      });
+
+      return fullOrder || newOrder;
     });
 
     // 18. Create payment attempt
@@ -338,6 +430,7 @@ export class CheckoutService {
         payment_amount: paymentAmount,
         payment_session: cashfreeSession.paymentSessionId,
         payment_method: 'CASHFREE',
+        sub_orders: (order as any).subOrders || [],
       };
     }
 
@@ -355,6 +448,8 @@ export class CheckoutService {
       payment_amount: paymentAmount,
       payment_method: order.paymentMethod,
       status: order.status,
+      sub_orders: (order as any).subOrders || [],
     };
   }
 }
+

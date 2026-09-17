@@ -30,4 +30,19 @@ router.patch('/read-all', async (req: Request, res: Response, next: NextFunction
   } catch (error) { next(error); }
 });
 
+router.delete('/:id', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    await NotificationService.deleteNotification(req.user!.id, req.params.id);
+    ApiResponse.success(res, null, 'Notification deleted successfully');
+  } catch (error) { next(error); }
+});
+
+router.delete('/', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    await NotificationService.deleteAllNotifications(req.user!.id);
+    ApiResponse.success(res, null, 'All notifications cleared successfully');
+  } catch (error) { next(error); }
+});
+
 export default router;
+

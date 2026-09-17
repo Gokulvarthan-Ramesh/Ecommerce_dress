@@ -1,1147 +1,4251 @@
 {
-	"info": {
-		"_postman_id": "ecommerce-api-full-collection",
-		"name": "Ecommerce API – Full Collection",
-		"description": "Complete Postman collection for the Ecommerce REST API.\n\nBase URL: {{baseUrl}} (default http://localhost:5000)\n\n**Authentication**: Most endpoints require a Bearer token. After login/register, copy the token into the `authToken` collection variable. All authenticated folders inherit it automatically.\n\n**Admin endpoints**: Require an admin-role JWT.",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-	},
-	"variable": [
-		{
-			"key": "baseUrl",
-			"value": "http://localhost:5000",
-			"type": "string"
-		},
-		{
-			"key": "authToken",
-			"value": "",
-			"type": "string"
-		},
-		{
-			"key": "adminToken",
-			"value": "",
-			"type": "string"
-		},
-		{
-			"key": "customerId",
-			"value": "4159f7e5-f4a1-47b5-b2cd-cbc5a57b8f70",
-			"type": "string"
-		}
-	],
-	"item": [
-		{
-			"name": "Health",
-			"item": [
-				{
-					"name": "Health Check",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/health",
-							"host": ["{{baseUrl}}"],
-							"path": ["health"]
-						},
-						"description": "Returns API health status, timestamp, and service name."
-					}
-				}
-			]
-		},
-		{
-			"name": "Auth",
-			"item": [
-				{
-					"name": "Send WhatsApp OTP",
-					"request": {
-						"method": "POST",
-						"header": [
-							{ "key": "Content-Type", "value": "application/json" }
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"phone\": \"9876543210\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/auth/send-otp",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "auth", "send-otp"]
-						},
-						"description": "Sends a 6-digit OTP to the given phone number via WhatsApp."
-					}
-				},
-				{
-					"name": "Register",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"var json = pm.response.json();",
-									"if (json.data && json.data.token) {",
-									"    pm.collectionVariables.set('authToken', json.data.token);",
-									"}"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{ "key": "Content-Type", "value": "application/json" }
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"phone\": \"9876543210\",\n  \"otp\": \"123456\",\n  \"password\": \"securePass123\",\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"referralCode\": \"\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/auth/register",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "auth", "register"]
-						},
-						"description": "Register a new user. OTP must be verified first via /send-otp. Optionally pass a referralCode. Auto-saves returned token."
-					}
-				},
-				{
-					"name": "Login",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"var json = pm.response.json();",
-									"if (json.data && json.data.token) {",
-									"    pm.collectionVariables.set('authToken', json.data.token);",
-									"}"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{ "key": "Content-Type", "value": "application/json" }
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"identifier\": \"9876543210\",\n  \"password\": \"securePass123\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/auth/login",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "auth", "login"]
-						},
-						"description": "Login with phone/email and password. Auto-saves returned token to authToken variable."
-					}
-				},
-				{
-					"name": "Admin Login",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"var json = pm.response.json();",
-									"if (json.data && json.data.token) {",
-									"    pm.collectionVariables.set('adminToken', json.data.token);",
-									"    pm.collectionVariables.set('authToken', json.data.token);",
-									"}"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{ "key": "Content-Type", "value": "application/json" }
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"identifier\": \"decodexfashionwear@gmail.com\",\n  \"password\": \"Admin@12345\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/auth/login",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "auth", "login"]
-						},
-						"description": "Login as Administrator (seeded: decodexfashionwear@gmail.com / Admin@12345). Auto-saves the returned token into both adminToken and authToken collection variables."
-					}
-				},
-				{
-					"name": "Get Profile",
-					"request": {
-						"method": "GET",
-						"header": [
-							{ "key": "Authorization", "value": "Bearer {{authToken}}" }
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/auth/profile",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "auth", "profile"]
-						},
-						"description": "Get the authenticated user's profile details."
-					}
-				}
-			]
-		},
-		{
-			"name": "Categories",
-			"item": [
-				{
-					"name": "Get All Categories (with Full Filters)",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/categories?mainSlug=men&status=active&level=2&search=&hasProducts=&sort=sortOrder_asc&tree=false&grouped=false&page=1&limit=20",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "categories"],
-							"query": [
-								{ "key": "mainSlug", "value": "men", "description": "Filter by main catalog: men, women, kids, or all", "disabled": true },
-								{ "key": "status", "value": "active", "description": "Filter by status: active, inactive, or all (default: active)", "disabled": true },
-								{ "key": "level", "value": "2", "description": "Filter by level: 1 (parent categories only: Men, Women, Kids), 2 (subcategories only)", "disabled": true },
-								{ "key": "parentSlug", "value": "men", "description": "Filter subcategories directly under parent slug (e.g. men, women, kids)", "disabled": true },
-								{ "key": "parentId", "value": "null", "description": "Filter by parent UUID, or 'null' for root categories only", "disabled": true },
-								{ "key": "search", "value": "shirt", "description": "Search category by name, description, or slug", "disabled": true },
-								{ "key": "hasProducts", "value": "true", "description": "Filter categories that have at least 1 product (true/false)", "disabled": true },
-								{ "key": "sort", "value": "sortOrder_asc", "description": "Sort order: sortOrder_asc, sortOrder_desc, name_asc, name_desc, products_desc, newest, oldest", "disabled": true },
-								{ "key": "tree", "value": "true", "description": "Return nested tree structure with subCategories under parent categories", "disabled": true },
-								{ "key": "grouped", "value": "true", "description": "Group categories by main category ({ all, men, women, kids })", "disabled": true },
-								{ "key": "page", "value": "1", "description": "Page number for pagination", "disabled": true },
-								{ "key": "limit", "value": "20", "description": "Items per page for pagination", "disabled": true }
-							]
-						},
-						"description": "List categories with comprehensive filtering:\n\n• `mainSlug`: 'men' | 'women' | 'kids' | 'all'\n• `status`: 'active' | 'inactive' | 'all'\n• `level`: 1 (parents) | 2 (subcategories)\n• `parentSlug`: 'men' | 'women' | 'kids'\n• `parentId`: UUID or 'null'\n• `search`: text search across name, description, slug\n• `hasProducts`: true | false\n• `sort`: 'sortOrder_asc' | 'name_asc' | 'products_desc' | 'newest'\n• `tree`: true (nested hierarchy)\n• `grouped`: true ({ all, men, women, kids })\n• `page` & `limit`: pagination metadata"
-					}
-				},
-				{
-					"name": "Get Category Details",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/categories/:id",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "categories", ":id"],
-							"variable": [
-								{ "key": "id", "value": "CATEGORY_ID_HERE", "description": "Category ID" }
-							]
-						},
-						"description": "Get details for a specific category including its products."
-					}
-				}
-			]
-		},
-		{
-			"name": "Products",
-			"item": [
-				{
-					"name": "Get Catalog Filters (Detailed Facets)",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/products/filters?mainSlug=men",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "products", "filters"],
-							"query": [
-								{ "key": "mainSlug", "value": "men", "description": "Scope filters to department: 'men', 'women', 'kids', or 'all'", "disabled": true },
-								{ "key": "category", "value": "men-tshirts", "description": "Scope filters to specific category or subcategory slug", "disabled": true }
-							]
-						},
-						"description": "Returns full, dynamic e-commerce catalog filter facets:\n\n• `totalProducts`: Total matching active products\n• `departments`: [{ name, slug, count }]\n• `categories`: [{ id, name, slug, mainSlug, level, parent, productCount }]\n• `categoryTree`: 3-level hierarchy with product counts\n• `brands`: [{ name, count }]\n• `sizes`: [{ size, count }]\n• `colors`: [{ color, hex, count }]\n• `fabrics`: [{ name, count }]\n• `fits`: [{ name, count }]\n• `sleeves`: [{ name, count }]\n• `patterns`: [{ name, count }]\n• `price`: { min, max, avg }\n• `priceBuckets`: [{ label, min, max, count }]\n• `sortOptions`: [{ label, value }]"
-					}
-				},
-				{
-					"name": "Get Products (List with Deep Filters)",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/products?category=&mainSlug=&brand=&fabric=&fit=&sleeve=&pattern=&size=&color=&minPrice=&maxPrice=&inStock=true&isFeatured=&search=&sort=newest&page=1&limit=20",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "products"],
-							"query": [
-								{ "key": "page", "value": "1", "description": "Page number (default 1)" },
-								{ "key": "limit", "value": "20", "description": "Items per page (default 20)" },
-								{ "key": "category", "value": "men-tshirts", "description": "Category slug (matches direct category, children, and grandchildren)", "disabled": true },
-								{ "key": "mainSlug", "value": "men", "description": "Department filter: men, women, kids", "disabled": true },
-								{ "key": "brand", "value": "ClassicLine,StyleCraft", "description": "Filter by brand name (comma-separated for multi-brand)", "disabled": true },
-								{ "key": "fabric", "value": "Cotton,Linen", "description": "Filter by fabric (comma-separated)", "disabled": true },
-								{ "key": "fit", "value": "Slim,Regular", "description": "Filter by fit: Slim, Regular, Oversized, etc.", "disabled": true },
-								{ "key": "sleeve", "value": "Half Sleeve", "description": "Filter by sleeve type", "disabled": true },
-								{ "key": "pattern", "value": "Solid,Striped", "description": "Filter by pattern", "disabled": true },
-								{ "key": "size", "value": "M,L", "description": "Filter by size (comma-separated for multi-size)", "disabled": true },
-								{ "key": "color", "value": "Black,Navy Blue", "description": "Filter by color (comma-separated)", "disabled": true },
-								{ "key": "minPrice", "value": "500", "description": "Minimum selling price", "disabled": true },
-								{ "key": "maxPrice", "value": "1500", "description": "Maximum selling price", "disabled": true },
-								{ "key": "inStock", "value": "true", "description": "Only show products in stock (stockQuantity > 0)", "disabled": true },
-								{ "key": "isFeatured", "value": "true", "description": "Only show featured products", "disabled": true },
-								{ "key": "search", "value": "shirt", "description": "Search by product name, description, brand", "disabled": true },
-								{ "key": "sort", "value": "newest", "description": "Sort order: 'newest', 'price_asc', 'price_desc', 'name_asc', 'name_desc'", "disabled": true }
-							]
-						},
-						"description": "Get paginated products with full e-commerce filtering across categories, departments, brands, fabrics, fits, sleeves, patterns, sizes, colors, price ranges, in-stock status, and sorting."
-					}
-				},
-				{
-					"name": "Get Product Details",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/products/:identifier",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "products", ":identifier"],
-							"variable": [
-								{ "key": "identifier", "value": "PRODUCT_ID_OR_SLUG", "description": "Product ID or slug" }
-							]
-						},
-						"description": "Get full product details by ID or slug, including variants and images."
-					}
-				}
-			]
-		},
-		{
-			"name": "Cart",
-			"item": [
-				{
-					"name": "Get Cart",
-					"request": {
-						"method": "GET",
-						"header": [
-							{ "key": "Authorization", "value": "Bearer {{authToken}}" }
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/cart",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "cart"]
-						},
-						"description": "Get the current user's cart with items, variants, and totals."
-					}
-				},
-				{
-					"name": "Add Item to Cart",
-					"request": {
-						"method": "POST",
-						"header": [
-							{ "key": "Content-Type", "value": "application/json" },
-							{ "key": "Authorization", "value": "Bearer {{authToken}}" }
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"variantId\": \"VARIANT_ID_HERE\",\n  \"quantity\": 1\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/cart/items",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "cart", "items"]
-						},
-						"description": "Add a product variant to the cart. Quantity defaults to 1 if not specified."
-					}
-				},
-				{
-					"name": "Update Cart Item Quantity",
-					"request": {
-						"method": "PATCH",
-						"header": [
-							{ "key": "Content-Type", "value": "application/json" },
-							{ "key": "Authorization", "value": "Bearer {{authToken}}" }
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"quantity\": 2\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/cart/items/:id",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "cart", "items", ":id"],
-							"variable": [
-								{ "key": "id", "value": "CART_ITEM_ID_HERE", "description": "Cart Item ID" }
-							]
-						},
-						"description": "Update the quantity of a specific cart item. Setting quantity to 0 removes the item."
-					}
-				},
-				{
-					"name": "Remove Item from Cart",
-					"request": {
-						"method": "DELETE",
-						"header": [
-							{ "key": "Authorization", "value": "Bearer {{authToken}}" }
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/cart/items/:id",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "cart", "items", ":id"],
-							"variable": [
-								{ "key": "id", "value": "CART_ITEM_ID_HERE", "description": "Cart Item ID" }
-							]
-						},
-						"description": "Remove a specific item from the cart."
-					}
-				},
-				{
-					"name": "Clear Cart",
-					"request": {
-						"method": "DELETE",
-						"header": [
-							{ "key": "Authorization", "value": "Bearer {{authToken}}" }
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/cart",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "cart"]
-						},
-						"description": "Remove all items from the cart."
-					}
-				}
-			]
-		},
-		{
-			"name": "Orders",
-			"item": [
-				{
-					"name": "Preview Checkout",
-					"request": {
-						"method": "POST",
-						"header": [
-							{ "key": "Content-Type", "value": "application/json" },
-							{ "key": "Authorization", "value": "Bearer {{authToken}}" }
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"items\": [],\n  \"couponCode\": \"\",\n  \"useWallet\": false\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/orders/preview",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "orders", "preview"]
-						},
-						"description": "Preview checkout calculation — returns item totals, applicable discounts, shipping cost, wallet deduction, and final payable amount. Send empty items array to use cart contents."
-					}
-				},
-				{
-					"name": "Create Order (Checkout)",
-					"request": {
-						"method": "POST",
-						"header": [
-							{ "key": "Content-Type", "value": "application/json" },
-							{ "key": "Authorization", "value": "Bearer {{authToken}}" }
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"paymentMethod\": \"CASHFREE\",\n  \"useWallet\": false,\n  \"couponCode\": \"\",\n  \"shippingAddress\": {\n    \"fullName\": \"John Doe\",\n    \"phone\": \"9876543210\",\n    \"addressLine1\": \"123 Main Street\",\n    \"addressLine2\": \"Apt 4B\",\n    \"city\": \"Mumbai\",\n    \"state\": \"Maharashtra\",\n    \"postalCode\": \"400001\",\n    \"country\": \"India\"\n  }\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/orders/checkout",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "orders", "checkout"]
-						},
-						"description": "Place an order. paymentMethod can be 'CASHFREE' (online) or 'COD'. For Cashfree, a payment session URL is returned. useWallet: true applies wallet balance."
-					}
-				},
-				{
-					"name": "Get My Orders",
-					"request": {
-						"method": "GET",
-						"header": [
-							{ "key": "Authorization", "value": "Bearer {{authToken}}" }
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/orders",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "orders"]
-						},
-						"description": "List all orders for the authenticated user."
-					}
-				},
-				{
-					"name": "Get Order Details",
-					"request": {
-						"method": "GET",
-						"header": [
-							{ "key": "Authorization", "value": "Bearer {{authToken}}" }
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/orders/:id",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "orders", ":id"],
-							"variable": [
-								{ "key": "id", "value": "ORDER_ID_HERE", "description": "Order ID" }
-							]
-						},
-						"description": "Get detailed information for a specific order. Automatically verifies and synchronizes Cashfree payment status if pending."
-					}
-				},
-				{
-					"name": "Verify / Sync Order Payment",
-					"request": {
-						"method": "POST",
-						"header": [
-							{ "key": "Authorization", "value": "Bearer {{authToken}}" }
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/orders/:id/verify",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "orders", ":id", "verify"],
-							"variable": [
-								{ "key": "id", "value": "7305c02b-56af-41af-87a1-1f145be5e1b8", "description": "Order ID to verify" }
-							]
-						},
-						"description": "Explicitly verify and synchronize payment status directly with Cashfree's API. Updates order to CONFIRMED and paymentStatus to SUCCESS upon verification."
-					}
-				},
-				{
-					"name": "Cancel Order",
-					"request": {
-						"method": "POST",
-						"header": [
-							{ "key": "Content-Type", "value": "application/json" },
-							{ "key": "Authorization", "value": "Bearer {{authToken}}" }
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"reason\": \"Changed my mind\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/orders/:id/cancel",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "orders", ":id", "cancel"],
-							"variable": [
-								{ "key": "id", "value": "ORDER_ID_HERE", "description": "Order ID" }
-							]
-						},
-						"description": "Cancel an order (allowed only before shipping). Payments and wallet amounts are refunded automatically."
-					}
-				}
-			]
-		},
-		{
-			"name": "Wallet",
-			"item": [
-				{
-					"name": "Get Wallet Balance",
-					"request": {
-						"method": "GET",
-						"header": [
-							{ "key": "Authorization", "value": "Bearer {{authToken}}" }
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/wallet",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "wallet"]
-						},
-						"description": "Get the current wallet balance for the authenticated user."
-					}
-				},
-				{
-					"name": "Get Wallet Transactions",
-					"request": {
-						"method": "GET",
-						"header": [
-							{ "key": "Authorization", "value": "Bearer {{authToken}}" }
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/wallet/transactions",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "wallet", "transactions"]
-						},
-						"description": "Get the wallet transaction ledger (credits, debits, referrals, refunds, etc.)."
-					}
-				}
-			]
-		},
-		{
-			"name": "Referrals",
-			"item": [
-				{
-					"name": "Get My Referral Info",
-					"request": {
-						"method": "GET",
-						"header": [
-							{ "key": "Authorization", "value": "Bearer {{authToken}}" }
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/referrals",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "referrals"]
-						},
-						"description": "Get the authenticated user's referral code, total earned, successful/pending referrals, and detailed referral list."
-					}
-				},
-				{
-					"name": "Validate Referral Code",
-					"request": {
-						"method": "POST",
-						"header": [
-							{ "key": "Content-Type", "value": "application/json" }
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"referral_code\": \"JOHN1234\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/referrals/validate",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "referrals", "validate"]
-						},
-						"description": "Public endpoint. Validate a referral code before registration. Returns validity status and referrer name."
-					}
-				}
-			]
-		},
-		{
-			"name": "Notifications",
-			"item": [
-				{
-					"name": "Get My Notifications",
-					"request": {
-						"method": "GET",
-						"header": [
-							{ "key": "Authorization", "value": "Bearer {{authToken}}" }
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/notifications",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "notifications"]
-						},
-						"description": "Get all notifications for the authenticated user along with unread count."
-					}
-				},
-				{
-					"name": "Mark Notification as Read",
-					"request": {
-						"method": "PATCH",
-						"header": [
-							{ "key": "Authorization", "value": "Bearer {{authToken}}" }
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/notifications/:id/read",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "notifications", ":id", "read"],
-							"variable": [
-								{ "key": "id", "value": "NOTIFICATION_ID_HERE", "description": "Notification ID" }
-							]
-						},
-						"description": "Mark a specific notification as read."
-					}
-				},
-				{
-					"name": "Mark All Notifications as Read",
-					"request": {
-						"method": "PATCH",
-						"header": [
-							{ "key": "Authorization", "value": "Bearer {{authToken}}" }
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/notifications/read-all",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "notifications", "read-all"]
-						},
-						"description": "Mark all notifications for the current user as read."
-					}
-				}
-			]
-		},
-		{
-			"name": "Webhooks",
-			"item": [
-				{
-					"name": "Cashfree Payment Webhook",
-					"request": {
-						"method": "POST",
-						"header": [
-							{ "key": "Content-Type", "value": "application/json" },
-							{ "key": "x-webhook-signature", "value": "SIGNATURE_HERE" },
-							{ "key": "x-webhook-timestamp", "value": "TIMESTAMP_HERE" }
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"type\": \"PAYMENT_SUCCESS_WEBHOOK\",\n  \"data\": {\n    \"order\": {\n      \"order_id\": \"ORDER_ID_HERE\",\n      \"order_amount\": 999.00,\n      \"order_currency\": \"INR\"\n    },\n    \"payment\": {\n      \"cf_payment_id\": \"CF_PAYMENT_ID\",\n      \"payment_status\": \"SUCCESS\",\n      \"payment_amount\": 999.00,\n      \"payment_method\": {\n        \"upi\": {\n          \"upi_id\": \"user@upi\"\n        }\n      }\n    }\n  }\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/webhooks/cashfree",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "v1", "webhooks", "cashfree"]
-						},
-						"description": "Cashfree payment webhook endpoint. Protected by signature verification middleware. Normally called by Cashfree servers, not manually."
-					}
-				}
-			]
-		},
-		{
-			"name": "Admin",
-			"description": "All admin endpoints require an admin-role JWT. Set the `adminToken` variable after logging in as an admin user.",
-			"item": [
-				{
-					"name": "Authentication",
-					"item": [
-						{
-							"name": "Admin Login",
-							"event": [
-								{
-									"listen": "test",
-									"script": {
-										"type": "text/javascript",
-										"exec": [
-											"var json = pm.response.json();",
-											"if (json.data && json.data.token) {",
-											"    pm.collectionVariables.set('adminToken', json.data.token);",
-											"    pm.collectionVariables.set('authToken', json.data.token);",
-											"}"
-										]
-									}
-								}
-							],
-							"request": {
-								"method": "POST",
-								"header": [
-									{ "key": "Content-Type", "value": "application/json" }
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n  \"identifier\": \"decodexfashionwear@gmail.com\",\n  \"password\": \"Admin@12345\"\n}"
-								},
-								"url": {
-									"raw": "{{baseUrl}}/api/v1/auth/login",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "v1", "auth", "login"]
-								},
-								"description": "Authenticate as an Administrator (decodexfashionwear@gmail.com). Automatically saves the admin JWT token into both adminToken and authToken collection variables for subsequent Admin API requests."
-							}
-						}
-					]
-				},
-				{
-					"name": "Dashboard & Customers",
-					"item": [
-						{
-							"name": "Get Dashboard Metrics",
-							"request": {
-								"method": "GET",
-								"header": [
-									{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
-								],
-								"url": {
-									"raw": "{{baseUrl}}/api/v1/admin/metrics",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "v1", "admin", "metrics"]
-								},
-								"description": "Get admin dashboard KPIs: today's sales, total orders, today's orders, total customers, active products, low stock count, orders by status, and recent orders."
-							}
-						},
-						{
-							"name": "Get Customer Details",
-							"request": {
-								"method": "GET",
-								"header": [
-									{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
-								],
-								"url": {
-									"raw": "{{baseUrl}}/api/v1/admin/customers/:id",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "v1", "admin", "customers", ":id"],
-									"variable": [
-										{ "key": "id", "value": "USER_ID_HERE", "description": "Customer User ID" }
-									]
-								},
-								"description": "Get detailed customer profile: name, contact, wallet balance, order count, total spent, successful referrals, and last order info."
-							}
-						}
-					]
-				},
-				{
-					"name": "Catalog Management",
-					"item": [
-						{
-							"name": "Create Category (Level 1 Parent - Men/Women/Kids)",
-							"request": {
-								"method": "POST",
-								"header": [
-									{ "key": "Content-Type", "value": "application/json" },
-									{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n  \"name\": \"Men\",\n  \"slug\": \"men\",\n  \"description\": \"Men's fashion, apparel and accessories\",\n  \"image\": \"https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?auto=format&fit=crop&w=800&q=80\",\n  \"level\": 1,\n  \"sortOrder\": 1,\n  \"parentId\": null,\n  \"isActive\": true\n}"
-								},
-								"url": {
-									"raw": "{{baseUrl}}/api/v1/admin/categories",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "v1", "admin", "categories"]
-								},
-								"description": "Create a top-level parent category (e.g. Men, Women, Kids). parentId must be null, level must be 1."
-							}
-						},
-						{
-							"name": "Create Subcategory (Level 2 - e.g. T-Shirts under Men)",
-							"request": {
-								"method": "POST",
-								"header": [
-									{ "key": "Content-Type", "value": "application/json" },
-									{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n  \"name\": \"T-Shirts\",\n  \"slug\": \"men-tshirts\",\n  \"description\": \"Men's casual, graphic and polo t-shirts\",\n  \"image\": \"https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=800&q=80\",\n  \"level\": 2,\n  \"sortOrder\": 1,\n  \"parentId\": \"PARENT_CATEGORY_ID_HERE\",\n  \"isActive\": true\n}"
-								},
-								"url": {
-									"raw": "{{baseUrl}}/api/v1/admin/categories",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "v1", "admin", "categories"]
-								},
-								"description": "Create a Level 2 subcategory under a Level 1 parent. Replace PARENT_CATEGORY_ID_HERE with the Level 1 category UUID."
-							}
-						},
-						{
-							"name": "Create Sub-subcategory (Level 3 - e.g. Oversized T-Shirts)",
-							"request": {
-								"method": "POST",
-								"header": [
-									{ "key": "Content-Type", "value": "application/json" },
-									{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n  \"name\": \"Oversized T-Shirts\",\n  \"slug\": \"men-oversized-tshirts\",\n  \"description\": \"Drop-shoulder oversized relaxed fits\",\n  \"image\": \"https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?auto=format&fit=crop&w=800&q=80\",\n  \"level\": 3,\n  \"sortOrder\": 1,\n  \"parentId\": \"SUBCATEGORY_ID_HERE\",\n  \"isActive\": true\n}"
-								},
-								"url": {
-									"raw": "{{baseUrl}}/api/v1/admin/categories",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "v1", "admin", "categories"]
-								},
-								"description": "Create a specialized Level 3 sub-subcategory under a Level 2 subcategory. Replace SUBCATEGORY_ID_HERE with the Level 2 category UUID."
-							}
-						},
-						{
-							"name": "Update Category (by ID)",
-							"request": {
-								"method": "POST",
-								"header": [
-									{ "key": "Content-Type", "value": "application/json" },
-									{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n  \"id\": \"CATEGORY_ID_HERE\",\n  \"name\": \"Men's Premium T-Shirts\",\n  \"slug\": \"men-tshirts\",\n  \"description\": \"Updated description and attributes\",\n  \"image\": \"https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=800&q=80\",\n  \"level\": 2,\n  \"sortOrder\": 1,\n  \"parentId\": \"PARENT_CATEGORY_ID_HERE\",\n  \"isActive\": true\n}"
-								},
-								"url": {
-									"raw": "{{baseUrl}}/api/v1/admin/categories",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "v1", "admin", "categories"]
-								},
-								"description": "Update an existing category. Passing `id` performs an update rather than create. Supports Google Drive or direct image URLs."
-							}
-						},
-						{
-							"name": "Toggle Category Status (Active/Inactive)",
-							"request": {
-								"method": "PATCH",
-								"header": [
-									{ "key": "Content-Type", "value": "application/json" },
-									{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n  \"isActive\": false,\n  \"cascade\": true\n}"
-								},
-								"url": {
-									"raw": "{{baseUrl}}/api/v1/admin/categories/:id/status",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "v1", "admin", "categories", ":id", "status"],
-									"variable": [
-										{ "key": "id", "value": "CATEGORY_ID_HERE", "description": "Category ID" }
-									]
-								},
-								"description": "Activate or deactivate a category. Optionally pass `\"cascade\": true` to recursively activate/deactivate all descendant subcategories."
-							}
-						},
-						{
-							"name": "Delete Category",
-							"request": {
-								"method": "DELETE",
-								"header": [
-									{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
-								],
-								"url": {
-									"raw": "{{baseUrl}}/api/v1/admin/categories/:id",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "v1", "admin", "categories", ":id"],
-									"variable": [
-										{ "key": "id", "value": "CATEGORY_ID_HERE", "description": "Category ID" }
-									]
-								},
-								"description": "Permanently delete a category. Fails if any products are assigned to it — deactivate instead."
-							}
-						},
-						{
-							"name": "Create / Update Product with Variants",
-							"request": {
-								"method": "POST",
-								"header": [
-									{ "key": "Content-Type", "value": "application/json" },
-									{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n  \"id\": \"\",\n  \"name\": \"Classic Cotton T-Shirt\",\n  \"slug\": \"classic-cotton-tshirt\",\n  \"description\": \"Premium 100% cotton t-shirt with a comfortable fit\",\n  \"brand\": \"StyleCraft\",\n  \"fabric\": \"Cotton\",\n  \"fit\": \"Regular\",\n  \"sleeve\": \"Half Sleeve\",\n  \"pattern\": \"Solid\",\n  \"categoryId\": \"CATEGORY_ID_HERE\",\n  \"basePrice\": 999,\n  \"sellingPrice\": 699,\n  \"buyingPrice\": 350,\n  \"isFeatured\": false,\n  \"isActive\": true,\n  \"images\": [\n    \"https://drive.google.com/file/d/FILE_ID_1/view\",\n    \"https://drive.google.com/file/d/FILE_ID_2/view\"\n  ],\n  \"variants\": [\n    {\n      \"sku\": \"CCT-BLK-S\",\n      \"size\": \"S\",\n      \"color\": \"Black\",\n      \"colorHex\": \"#000000\",\n      \"price\": 0,\n      \"stockQuantity\": 50,\n      \"isActive\": true\n    },\n    {\n      \"sku\": \"CCT-BLK-M\",\n      \"size\": \"M\",\n      \"color\": \"Black\",\n      \"colorHex\": \"#000000\",\n      \"price\": 0,\n      \"stockQuantity\": 75,\n      \"isActive\": true\n    },\n    {\n      \"sku\": \"CCT-WHT-L\",\n      \"size\": \"L\",\n      \"color\": \"White\",\n      \"colorHex\": \"#FFFFFF\",\n      \"price\": 0,\n      \"stockQuantity\": 60,\n      \"isActive\": true\n    }\n  ]\n}"
-								},
-								"url": {
-									"raw": "{{baseUrl}}/api/v1/admin/products",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "v1", "admin", "products"]
-								},
-								"description": "Create a new product or update an existing one (upsert). Pass an existing `id` to update. Includes size/color variants with SKU, stock, and pricing. Images from Google Drive are auto-converted."
-							}
-						},
-						{
-							"name": "Update Variant Stock",
-							"request": {
-								"method": "PATCH",
-								"header": [
-									{ "key": "Content-Type", "value": "application/json" },
-									{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n  \"stockQuantity\": 100\n}"
-								},
-								"url": {
-									"raw": "{{baseUrl}}/api/v1/admin/variants/:variantId/stock",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "v1", "admin", "variants", ":variantId", "stock"],
-									"variable": [
-										{ "key": "variantId", "value": "VARIANT_ID_HERE", "description": "Product Variant ID" }
-									]
-								},
-								"description": "Directly update the stock quantity for a specific product variant."
-							}
-						}
-					]
-				},
-				{
-					"name": "Order Fulfillment",
-					"item": [
-						{
-							"name": "Get All Orders (Admin)",
-							"request": {
-								"method": "GET",
-								"header": [
-									{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
-								],
-								"url": {
-									"raw": "{{baseUrl}}/api/v1/admin/orders?status=&paymentStatus=&page=1&limit=20",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "v1", "admin", "orders"],
-									"query": [
-										{ "key": "status", "value": "", "description": "Filter: PENDING_PAYMENT, CONFIRMED, SHIPPED, DELIVERED, CANCELLED" },
-										{ "key": "paymentStatus", "value": "", "description": "Filter: PENDING, SUCCESS, FAILED, REFUNDED" },
-										{ "key": "page", "value": "1", "description": "Page number" },
-										{ "key": "limit", "value": "20", "description": "Items per page" }
-									]
-								},
-								"description": "List all orders with optional status and payment status filters. Includes pagination, user info, order items, and payments."
-							}
-						},
-						{
-							"name": "Get Order Details (Admin)",
-							"request": {
-								"method": "GET",
-								"header": [
-									{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
-								],
-								"url": {
-									"raw": "{{baseUrl}}/api/v1/admin/orders/:id",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "v1", "admin", "orders", ":id"],
-									"variable": [
-										{ "key": "id", "value": "ORDER_ID_HERE", "description": "Order ID" }
-									]
-								},
-								"description": "Get full order details for admin including user, items, payments, refunds, and status history."
-							}
-						},
-						{
-							"name": "Update Order Status",
-							"request": {
-								"method": "PATCH",
-								"header": [
-									{ "key": "Content-Type", "value": "application/json" },
-									{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n  \"status\": \"CONFIRMED\"\n}"
-								},
-								"url": {
-									"raw": "{{baseUrl}}/api/v1/admin/orders/:id/status",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "v1", "admin", "orders", ":id", "status"],
-									"variable": [
-										{ "key": "id", "value": "ORDER_ID_HERE", "description": "Order ID" }
-									]
-								},
-								"description": "Update order status. Valid values: PENDING_PAYMENT, CONFIRMED, SHIPPED, DELIVERED, CANCELLED. Setting to DELIVERED auto-triggers referral rewards and marks COD as paid. Sends notifications to customer."
-							}
-						}
-					]
-				},
-				{
-					"name": "Payments & Refunds",
-					"item": [
-						{
-							"name": "Trigger Cashfree Refund",
-							"request": {
-								"method": "POST",
-								"header": [
-									{ "key": "Content-Type", "value": "application/json" },
-									{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n  \"orderId\": \"ORDER_ID_HERE\",\n  \"amount\": 699,\n  \"reason\": \"Customer requested refund\"\n}"
-								},
-								"url": {
-									"raw": "{{baseUrl}}/api/v1/admin/refunds",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "v1", "admin", "refunds"]
-								},
-								"description": "Initiate a Cashfree refund for a paid order. Amount is optional — defaults to full payment amount. Order must have paymentStatus = SUCCESS."
-							}
-						}
-					]
-				},
-				{
-					"name": "Wallet Management",
-					"item": [
-						{
-							"name": "Adjust Customer Wallet (Credit)",
-							"request": {
-								"method": "POST",
-								"header": [
-									{ "key": "Content-Type", "value": "application/json" },
-									{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n  \"userId\": \"{{customerId}}\",\n  \"amount\": 100,\n  \"type\": \"CREDIT\",\n  \"description\": \"Promotional bonus for festive season\"\n}"
-								},
-								"url": {
-									"raw": "{{baseUrl}}/api/v1/admin/wallet/adjust",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "v1", "admin", "wallet", "adjust"]
-								},
-								"description": "Manually credit a customer's wallet. Uses {{customerId}} variable (default: Gokulvarthan 4159f7e5-f4a1-47b5-b2cd-cbc5a57b8f70). Automatically updates wallet balance and creates an audit ledger transaction."
-							}
-						},
-						{
-							"name": "Adjust Customer Wallet (Debit)",
-							"request": {
-								"method": "POST",
-								"header": [
-									{ "key": "Content-Type", "value": "application/json" },
-									{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n  \"userId\": \"{{customerId}}\",\n  \"amount\": 50,\n  \"type\": \"DEBIT\",\n  \"description\": \"Admin manual deduction\"\n}"
-								},
-								"url": {
-									"raw": "{{baseUrl}}/api/v1/admin/wallet/adjust",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "v1", "admin", "wallet", "adjust"]
-								},
-								"description": "Manually debit a customer's wallet. Fails if user does not have sufficient balance. Updates ledger."
-							}
-						}
-					]
-				},
-				{
-					"name": "System Settings",
-					"item": [
-						{
-							"name": "Get All System Settings",
-							"request": {
-								"method": "GET",
-								"header": [
-									{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
-								],
-								"url": {
-									"raw": "{{baseUrl}}/api/v1/admin/settings",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "v1", "admin", "settings"]
-								},
-								"description": "Get all dynamic system settings (first order offer, referral program, shipping config, COD settings, etc.)."
-							}
-						},
-						{
-							"name": "Update System Setting",
-							"request": {
-								"method": "PUT",
-								"header": [
-									{ "key": "Content-Type", "value": "application/json" },
-									{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n  \"value\": {\n    \"enabled\": true,\n    \"discountPercent\": 15,\n    \"maxDiscount\": 200\n  },\n  \"description\": \"First order discount configuration\"\n}"
-								},
-								"url": {
-									"raw": "{{baseUrl}}/api/v1/admin/settings/:key",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "v1", "admin", "settings", ":key"],
-									"variable": [
-										{ "key": "key", "value": "first_order_offer", "description": "Setting key (e.g. first_order_offer, referral_program, shipping, payments)" }
-									]
-								},
-								"description": "Update a specific system setting by key. Changes take effect immediately. Common keys: first_order_offer, referral_program, shipping, payments."
-							}
-						}
-					]
-				},
-				{
-					"name": "Offer Management",
-					"item": [
-						{
-							"name": "Get All Offers",
-							"request": {
-								"method": "GET",
-								"header": [
-									{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
-								],
-								"url": {
-									"raw": "{{baseUrl}}/api/v1/admin/offers",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "v1", "admin", "offers"]
-								},
-								"description": "List all offers/coupons sorted by creation date (newest first)."
-							}
-						},
-						{
-							"name": "Create / Update Offer",
-							"request": {
-								"method": "POST",
-								"header": [
-									{ "key": "Content-Type", "value": "application/json" },
-									{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n  \"id\": \"\",\n  \"name\": \"WELCOME50\",\n  \"type\": \"PERCENTAGE\",\n  \"value\": 50,\n  \"minimumOrderAmount\": 500,\n  \"firstOrderOnly\": true,\n  \"perUserLimit\": 1,\n  \"usageLimit\": 1000,\n  \"startAt\": \"2026-01-01T00:00:00.000Z\",\n  \"endAt\": \"2026-12-31T23:59:59.000Z\",\n  \"isActive\": true\n}"
-								},
-								"url": {
-									"raw": "{{baseUrl}}/api/v1/admin/offers",
-									"host": ["{{baseUrl}}"],
-									"path": ["api", "v1", "admin", "offers"]
-								},
-								"description": "Create or update an offer/coupon (upsert). Pass existing `id` to update. Type: FIXED or PERCENTAGE. Supports first-order-only, per-user limits, global usage limits, and date ranges."
-							}
-						}
-					]
-				}
-			]
-		}
-	]
+  "info": {
+    "_postman_id": "ecommerce-api-full-collection",
+    "name": "Ecommerce API – Full Collection",
+    "description": "Complete Postman collection for the Ecommerce REST API.\n\nBase URL: {{baseUrl}} (default http://localhost:5000)\n\n**Authentication**: Most endpoints require a Bearer token. After login/register, copy the token into the `authToken` collection variable. All authenticated folders inherit it automatically.\n\n**Admin endpoints**: Require an admin-role JWT.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "customerId",
+      "value": "4159f7e5-f4a1-47b5-b2cd-cbc5a57b8f70",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": "Returns API health status, timestamp, and service name."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Config & Banners",
+      "description": "Public store configuration and home screen promotional carousels (zero frontend hardcoding).",
+      "item": [
+        {
+          "name": "Get Public Store Configuration",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/config",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "config"
+              ]
+            },
+            "description": "Returns live store details, support WhatsApp/phone, shipping charges, free delivery threshold, payment toggles, first order offer, and referral rules."
+          }
+        },
+        {
+          "name": "Get Active Home Screen Banners",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/banners",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "banners"
+              ]
+            },
+            "description": "Returns all active home screen promotional sliders and campaign banners sorted by sortOrder."
+          }
+        },
+        {
+          "name": "Get Available Coupons (Customer Drawer)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/coupons",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "coupons"
+              ]
+            },
+            "description": "Returns all currently active and non-expired coupons available for customer cart and checkout discount drawers (code, discountType, discountValue, minOrderAmount, maxDiscount)."
+          }
+        },
+        {
+          "name": "Get Legal Policies (Terms, Privacy, Returns, Shipping)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/config/policies",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "config",
+                "policies"
+              ]
+            },
+            "description": "Returns full dynamic legal texts for Terms of Service, Privacy Policy, Return & Refund Policy, and Shipping Policy (100% backend-managed by Admin)."
+          }
+        },
+        {
+          "name": "Get Store FAQs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/config/faqs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "config",
+                "faqs"
+              ]
+            },
+            "description": "Returns customer support FAQs categorized by topic (Orders, Payments, Returns, Referrals)."
+          }
+        },
+        {
+          "name": "Get Size Guide Charts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/config/size-guides",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "config",
+                "size-guides"
+              ]
+            },
+            "description": "Returns structured size charts (columns, rows, units) for category apparel displayed in product detail screens."
+          }
+        },
+        {
+          "name": "Get Dynamic Home Feed",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/home",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "home"
+              ]
+            },
+            "description": "Unified 100% backend-driven customer home screen feed containing announcementBar, brand theme tokens, hero carousels, category grid, featured products with variant matrix, active promotional offers, first-order discounts, customer reviews/testimonials, and store trust badges."
+          }
+        },
+        {
+          "name": "Get Order Cancellation & Return Reasons",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/config/reasons",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "config",
+                "reasons"
+              ]
+            },
+            "description": "Returns dynamic dropdown reasons for order cancellations and product returns configured by the store admin."
+          }
+        },
+        {
+          "name": "Get Header & Footer Navigation",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/config/navigation",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "config",
+                "navigation"
+              ]
+            },
+            "description": "Returns complete navigation tree including header tabs with promotional badges and footer multi-column links."
+          }
+        },
+        {
+          "name": "Get App Theme & Styling Tokens",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/config/theme",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "config",
+                "theme"
+              ]
+            },
+            "description": "Returns primary, secondary, and accent brand colors, typography font families, border radiuses, and light/dark theme tokens."
+          }
+        },
+        {
+          "name": "Check Pincode Serviceability & Delivery Speed",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/config/check-pincode?pincode=560001",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "config",
+                "check-pincode"
+              ],
+              "query": [
+                {
+                  "key": "pincode",
+                  "value": "560001",
+                  "description": "Customer delivery PIN code"
+                }
+              ]
+            },
+            "description": "Checks customer pincode delivery serviceability, estimated delivery days, and Cash on Delivery (COD) availability based on admin rules."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Send WhatsApp OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"9876543210\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/send-otp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "send-otp"
+              ]
+            },
+            "description": "Sends a 6-digit OTP to the given phone number via WhatsApp."
+          }
+        },
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.data && json.data.token) {",
+                  "    pm.collectionVariables.set('authToken', json.data.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"9876543210\",\n  \"otp\": \"123456\",\n  \"password\": \"securePass123\",\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"referralCode\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Register a new user. OTP must be verified first via /send-otp. Optionally pass a referralCode. Auto-saves returned token."
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.data && json.data.token) {",
+                  "    pm.collectionVariables.set('authToken', json.data.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"9876543210\",\n  \"password\": \"securePass123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Login with phone/email and password. Auto-saves returned token to authToken variable."
+          }
+        },
+        {
+          "name": "Admin Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.data && json.data.token) {",
+                  "    pm.collectionVariables.set('adminToken', json.data.token);",
+                  "    pm.collectionVariables.set('authToken', json.data.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"decodexfashionwear@gmail.com\",\n  \"password\": \"Admin@12345\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Login as Administrator (seeded: decodexfashionwear@gmail.com / Admin@12345). Auto-saves the returned token into both adminToken and authToken collection variables."
+          }
+        },
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "profile"
+              ]
+            },
+            "description": "Get the authenticated user's profile details."
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Gokul Varthan\",\n  \"email\": \"gokul.updated@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "profile"
+              ]
+            },
+            "description": "Update the authenticated user's profile name and email address. Validates email uniqueness."
+          }
+        },
+        {
+          "name": "Delete Account (Deactivate)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/account",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "account"
+              ]
+            },
+            "description": "Deactivate customer account. Blocks deletion if active/in-transit orders exist."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Addresses",
+      "description": "Customer address book management for saved delivery locations.",
+      "item": [
+        {
+          "name": "List Saved Addresses",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/addresses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "addresses"
+              ]
+            },
+            "description": "Returns all saved shipping addresses for the logged-in customer, with default address first."
+          }
+        },
+        {
+          "name": "Get Address by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/addresses/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "addresses",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "ADDRESS_ID_HERE",
+                  "description": "Address UUID"
+                }
+              ]
+            },
+            "description": "Get a single saved address by ID."
+          }
+        },
+        {
+          "name": "Add Delivery Address",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Home\",\n  \"phone\": \"9876543210\",\n  \"addressLine1\": \"Flat 402, Sunshine Residency\",\n  \"addressLine2\": \"Near High Street Mall\",\n  \"city\": \"Bengaluru\",\n  \"district\": \"Bengaluru Urban\",\n  \"state\": \"Karnataka\",\n  \"pincode\": \"560001\",\n  \"country\": \"India\",\n  \"isDefault\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/addresses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "addresses"
+              ]
+            },
+            "description": "Create and save a new shipping/delivery address. If isDefault is true, it automatically unsets previous default."
+          }
+        },
+        {
+          "name": "Update Delivery Address",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Office\",\n  \"phone\": \"9876543210\",\n  \"addressLine1\": \"Tech Park, 4th Floor, Tower B\",\n  \"addressLine2\": \"Outer Ring Road\",\n  \"city\": \"Bengaluru\",\n  \"district\": \"Bengaluru Urban\",\n  \"state\": \"Karnataka\",\n  \"pincode\": \"560103\",\n  \"country\": \"India\",\n  \"isDefault\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/addresses/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "addresses",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "ADDRESS_ID_HERE",
+                  "description": "Address UUID"
+                }
+              ]
+            },
+            "description": "Update details of an existing saved address."
+          }
+        },
+        {
+          "name": "Set Default Address",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/addresses/:id/default",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "addresses",
+                ":id",
+                "default"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "ADDRESS_ID_HERE",
+                  "description": "Address UUID"
+                }
+              ]
+            },
+            "description": "Set a specific saved address as the default delivery address."
+          }
+        },
+        {
+          "name": "Delete Delivery Address",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/addresses/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "addresses",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "ADDRESS_ID_HERE",
+                  "description": "Address UUID"
+                }
+              ]
+            },
+            "description": "Delete a saved address from the customer address book."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "item": [
+        {
+          "name": "Get All Categories (with Full Filters)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/categories?mainSlug=men&status=active&level=2&search=&hasProducts=&sort=sortOrder_asc&tree=false&grouped=false&page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "categories"
+              ],
+              "query": [
+                {
+                  "key": "mainSlug",
+                  "value": "men",
+                  "description": "Filter by main catalog: men, women, kids, or all",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "description": "Filter by status: active, inactive, or all (default: active)",
+                  "disabled": true
+                },
+                {
+                  "key": "level",
+                  "value": "2",
+                  "description": "Filter by level: 1 (parent categories only: Men, Women, Kids), 2 (subcategories only)",
+                  "disabled": true
+                },
+                {
+                  "key": "parentSlug",
+                  "value": "men",
+                  "description": "Filter subcategories directly under parent slug (e.g. men, women, kids)",
+                  "disabled": true
+                },
+                {
+                  "key": "parentId",
+                  "value": "null",
+                  "description": "Filter by parent UUID, or 'null' for root categories only",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "shirt",
+                  "description": "Search category by name, description, or slug",
+                  "disabled": true
+                },
+                {
+                  "key": "hasProducts",
+                  "value": "true",
+                  "description": "Filter categories that have at least 1 product (true/false)",
+                  "disabled": true
+                },
+                {
+                  "key": "sort",
+                  "value": "sortOrder_asc",
+                  "description": "Sort order: sortOrder_asc, sortOrder_desc, name_asc, name_desc, products_desc, newest, oldest",
+                  "disabled": true
+                },
+                {
+                  "key": "tree",
+                  "value": "true",
+                  "description": "Return nested tree structure with subCategories under parent categories",
+                  "disabled": true
+                },
+                {
+                  "key": "grouped",
+                  "value": "true",
+                  "description": "Group categories by main category ({ all, men, women, kids })",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number for pagination",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Items per page for pagination",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List categories with comprehensive filtering:\n\n• `mainSlug`: 'men' | 'women' | 'kids' | 'all'\n• `status`: 'active' | 'inactive' | 'all'\n• `level`: 1 (parents) | 2 (subcategories)\n• `parentSlug`: 'men' | 'women' | 'kids'\n• `parentId`: UUID or 'null'\n• `search`: text search across name, description, slug\n• `hasProducts`: true | false\n• `sort`: 'sortOrder_asc' | 'name_asc' | 'products_desc' | 'newest'\n• `tree`: true (nested hierarchy)\n• `grouped`: true ({ all, men, women, kids })\n• `page` & `limit`: pagination metadata"
+          }
+        },
+        {
+          "name": "Get Category Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/categories/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "categories",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "CATEGORY_ID_HERE",
+                  "description": "Category ID"
+                }
+              ]
+            },
+            "description": "Get details for a specific category including its products."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "Get Catalog Filters (Detailed Facets)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/products/filters?mainSlug=men",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "products",
+                "filters"
+              ],
+              "query": [
+                {
+                  "key": "mainSlug",
+                  "value": "men",
+                  "description": "Scope filters to department: 'men', 'women', 'kids', or 'all'",
+                  "disabled": true
+                },
+                {
+                  "key": "category",
+                  "value": "men-tshirts",
+                  "description": "Scope filters to specific category or subcategory slug",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Returns full, dynamic e-commerce catalog filter facets:\n\n• `totalProducts`: Total matching active products\n• `departments`: [{ name, slug, count }]\n• `categories`: [{ id, name, slug, mainSlug, level, parent, productCount }]\n• `categoryTree`: 3-level hierarchy with product counts\n• `brands`: [{ name, count }]\n• `sizes`: [{ size, count }]\n• `colors`: [{ color, hex, count }]\n• `fabrics`: [{ name, count }]\n• `fits`: [{ name, count }]\n• `sleeves`: [{ name, count }]\n• `patterns`: [{ name, count }]\n• `price`: { min, max, avg }\n• `priceBuckets`: [{ label, min, max, count }]\n• `sortOptions`: [{ label, value }]"
+          }
+        },
+        {
+          "name": "Get Products (List with Deep Filters)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/products?category=&mainSlug=&brand=&fabric=&fit=&sleeve=&pattern=&size=&color=&minPrice=&maxPrice=&inStock=true&isFeatured=&search=&sort=newest&page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "products"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Items per page (default 20)"
+                },
+                {
+                  "key": "category",
+                  "value": "men-tshirts",
+                  "description": "Category slug (matches direct category, children, and grandchildren)",
+                  "disabled": true
+                },
+                {
+                  "key": "mainSlug",
+                  "value": "men",
+                  "description": "Department filter: men, women, kids",
+                  "disabled": true
+                },
+                {
+                  "key": "brand",
+                  "value": "ClassicLine,StyleCraft",
+                  "description": "Filter by brand name (comma-separated for multi-brand)",
+                  "disabled": true
+                },
+                {
+                  "key": "fabric",
+                  "value": "Cotton,Linen",
+                  "description": "Filter by fabric (comma-separated)",
+                  "disabled": true
+                },
+                {
+                  "key": "fit",
+                  "value": "Slim,Regular",
+                  "description": "Filter by fit: Slim, Regular, Oversized, etc.",
+                  "disabled": true
+                },
+                {
+                  "key": "sleeve",
+                  "value": "Half Sleeve",
+                  "description": "Filter by sleeve type",
+                  "disabled": true
+                },
+                {
+                  "key": "pattern",
+                  "value": "Solid,Striped",
+                  "description": "Filter by pattern",
+                  "disabled": true
+                },
+                {
+                  "key": "size",
+                  "value": "M,L",
+                  "description": "Filter by size (comma-separated for multi-size)",
+                  "disabled": true
+                },
+                {
+                  "key": "color",
+                  "value": "Black,Navy Blue",
+                  "description": "Filter by color (comma-separated)",
+                  "disabled": true
+                },
+                {
+                  "key": "minPrice",
+                  "value": "500",
+                  "description": "Minimum selling price",
+                  "disabled": true
+                },
+                {
+                  "key": "maxPrice",
+                  "value": "1500",
+                  "description": "Maximum selling price",
+                  "disabled": true
+                },
+                {
+                  "key": "inStock",
+                  "value": "true",
+                  "description": "Only show products in stock (stockQuantity > 0)",
+                  "disabled": true
+                },
+                {
+                  "key": "isFeatured",
+                  "value": "true",
+                  "description": "Only show featured products",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "shirt",
+                  "description": "Search by product name, description, brand",
+                  "disabled": true
+                },
+                {
+                  "key": "sort",
+                  "value": "newest",
+                  "description": "Sort order: 'newest', 'price_asc', 'price_desc', 'name_asc', 'name_desc'",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get paginated products with full e-commerce filtering across categories, departments, brands, fabrics, fits, sleeves, patterns, sizes, colors, price ranges, in-stock status, and sorting."
+          }
+        },
+        {
+          "name": "Get Product Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/products/:identifier",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "products",
+                ":identifier"
+              ],
+              "variable": [
+                {
+                  "key": "identifier",
+                  "value": "PRODUCT_ID_OR_SLUG",
+                  "description": "Product ID or slug"
+                }
+              ]
+            },
+            "description": "Get full product details by ID or slug, including variants and images."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cart",
+      "item": [
+        {
+          "name": "Get Cart",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/cart",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "cart"
+              ]
+            },
+            "description": "Get the current user's cart with items, variants, and totals."
+          }
+        },
+        {
+          "name": "Add Item to Cart",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"variantId\": \"VARIANT_ID_HERE\",\n  \"quantity\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/cart/items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "cart",
+                "items"
+              ]
+            },
+            "description": "Add a product variant to the cart. Quantity defaults to 1 if not specified."
+          }
+        },
+        {
+          "name": "Update Cart Item Quantity",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 2\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/cart/items/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "cart",
+                "items",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "CART_ITEM_ID_HERE",
+                  "description": "Cart Item ID"
+                }
+              ]
+            },
+            "description": "Update the quantity of a specific cart item. Setting quantity to 0 removes the item."
+          }
+        },
+        {
+          "name": "Remove Item from Cart",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/cart/items/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "cart",
+                "items",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "CART_ITEM_ID_HERE",
+                  "description": "Cart Item ID"
+                }
+              ]
+            },
+            "description": "Remove a specific item from the cart."
+          }
+        },
+        {
+          "name": "Clear Cart",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/cart",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "cart"
+              ]
+            },
+            "description": "Remove all items from the cart."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Preview Checkout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [],\n  \"couponCode\": \"\",\n  \"useWallet\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/orders/preview",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orders",
+                "preview"
+              ]
+            },
+            "description": "Preview checkout calculation — returns item totals, applicable discounts, shipping cost, wallet deduction, and final payable amount. Send empty items array to use cart contents."
+          }
+        },
+        {
+          "name": "Create Order (Checkout)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentMethod\": \"CASHFREE\",\n  \"useWallet\": false,\n  \"couponCode\": \"\",\n  \"shippingAddress\": {\n    \"fullName\": \"John Doe\",\n    \"phone\": \"9876543210\",\n    \"addressLine1\": \"123 Main Street\",\n    \"addressLine2\": \"Apt 4B\",\n    \"city\": \"Mumbai\",\n    \"state\": \"Maharashtra\",\n    \"postalCode\": \"400001\",\n    \"country\": \"India\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/orders/checkout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orders",
+                "checkout"
+              ]
+            },
+            "description": "Place an order. paymentMethod can be 'CASHFREE' (online) or 'COD'. For Cashfree, a payment session URL is returned. useWallet: true applies wallet balance."
+          }
+        },
+        {
+          "name": "Get My Orders",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/orders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orders"
+              ]
+            },
+            "description": "List all orders for the authenticated user."
+          }
+        },
+        {
+          "name": "Get Order Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/orders/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orders",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "ORDER_ID_HERE",
+                  "description": "Order ID"
+                }
+              ]
+            },
+            "description": "Get detailed information for a specific order. Automatically verifies and synchronizes Cashfree payment status if pending."
+          }
+        },
+        {
+          "name": "Verify / Sync Order Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/orders/:id/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orders",
+                ":id",
+                "verify"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "7305c02b-56af-41af-87a1-1f145be5e1b8",
+                  "description": "Order ID to verify"
+                }
+              ]
+            },
+            "description": "Explicitly verify and synchronize payment status directly with Cashfree's API. Updates order to CONFIRMED and paymentStatus to SUCCESS upon verification."
+          }
+        },
+        {
+          "name": "Cancel Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Changed my mind\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/orders/:id/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orders",
+                ":id",
+                "cancel"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "ORDER_ID_HERE",
+                  "description": "Order ID"
+                }
+              ]
+            },
+            "description": "Cancel an order (allowed only before shipping). Payments and wallet amounts are refunded automatically."
+          }
+        },
+        {
+          "name": "Verify Payment (Public GET)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/orders/:id/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orders",
+                ":id",
+                "verify"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "ORDER_ID_HERE",
+                  "description": "Order ID to verify"
+                }
+              ]
+            },
+            "description": "Public order payment verification endpoint used by frontend polling and return callbacks (does not require auth header)."
+          }
+        },
+        {
+          "name": "Cashfree Return Callback URL",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/orders/return?order_id=ORDER_ID_HERE",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orders",
+                "return"
+              ],
+              "query": [
+                {
+                  "key": "order_id",
+                  "value": "ORDER_ID_HERE",
+                  "description": "Cashfree order_id query param"
+                }
+              ]
+            },
+            "description": "Redirect target where Cashfree returns the user after modal/redirect payment."
+          }
+        },
+        {
+          "name": "Request Order Return (7-Day Policy)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Item size does not fit as expected\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/orders/:id/return",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orders",
+                ":id",
+                "return"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "DELIVERED_ORDER_ID_HERE",
+                  "description": "Delivered Order ID"
+                }
+              ]
+            },
+            "description": "Customer initiates a return request within 7 days of delivery."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Wallet",
+      "item": [
+        {
+          "name": "Get Wallet Balance",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/wallet",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "wallet"
+              ]
+            },
+            "description": "Get the current wallet balance for the authenticated user."
+          }
+        },
+        {
+          "name": "Get Wallet Transactions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/wallet/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "wallet",
+                "transactions"
+              ]
+            },
+            "description": "Get the wallet transaction ledger (credits, debits, referrals, refunds, etc.)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Referrals",
+      "item": [
+        {
+          "name": "Get My Referral Info",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/referrals",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "referrals"
+              ]
+            },
+            "description": "Get the authenticated user's referral code, total earned, successful/pending referrals, and detailed referral list."
+          }
+        },
+        {
+          "name": "Validate Referral Code",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"referral_code\": \"JOHN1234\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/referrals/validate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "referrals",
+                "validate"
+              ]
+            },
+            "description": "Public endpoint. Validate a referral code before registration. Returns validity status and referrer name."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "Get My Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notifications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "notifications"
+              ]
+            },
+            "description": "Get all notifications for the authenticated user along with unread count."
+          }
+        },
+        {
+          "name": "Mark Notification as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notifications/:id/read",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "notifications",
+                ":id",
+                "read"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "NOTIFICATION_ID_HERE",
+                  "description": "Notification ID"
+                }
+              ]
+            },
+            "description": "Mark a specific notification as read."
+          }
+        },
+        {
+          "name": "Mark All Notifications as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notifications/read-all",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "notifications",
+                "read-all"
+              ]
+            },
+            "description": "Mark all notifications for the current user as read."
+          }
+        },
+        {
+          "name": "Delete Single Notification",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notifications/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "notifications",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "NOTIFICATION_ID_HERE",
+                  "description": "Notification ID"
+                }
+              ]
+            },
+            "description": "Delete a single notification by ID."
+          }
+        },
+        {
+          "name": "Clear All Notifications",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notifications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "notifications"
+              ]
+            },
+            "description": "Delete all notifications for the current user."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Webhooks",
+      "item": [
+        {
+          "name": "Cashfree Payment Webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-webhook-signature",
+                "value": "SIGNATURE_HERE"
+              },
+              {
+                "key": "x-webhook-timestamp",
+                "value": "TIMESTAMP_HERE"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"PAYMENT_SUCCESS_WEBHOOK\",\n  \"data\": {\n    \"order\": {\n      \"order_id\": \"ORDER_ID_HERE\",\n      \"order_amount\": 999.00,\n      \"order_currency\": \"INR\"\n    },\n    \"payment\": {\n      \"cf_payment_id\": \"CF_PAYMENT_ID\",\n      \"payment_status\": \"SUCCESS\",\n      \"payment_amount\": 999.00,\n      \"payment_method\": {\n        \"upi\": {\n          \"upi_id\": \"user@upi\"\n        }\n      }\n    }\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/webhooks/cashfree",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "webhooks",
+                "cashfree"
+              ]
+            },
+            "description": "Cashfree payment webhook endpoint. Protected by signature verification middleware. Normally called by Cashfree servers, not manually."
+          }
+        },
+        {
+          "name": "Simulate Cashfree Payment Webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": \"ORDER_ID_HERE\",\n  \"status\": \"SUCCESS\",\n  \"paymentMethod\": \"upi\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/webhooks/simulate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "webhooks",
+                "simulate"
+              ]
+            },
+            "description": "Instantly simulates a local Cashfree PAYMENT_SUCCESS webhook during testing. Automatically looks up order payment amount."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "description": "All admin endpoints require an admin-role JWT. Set the `adminToken` variable after logging in as an admin user.",
+      "item": [
+        {
+          "name": "Authentication",
+          "item": [
+            {
+              "name": "Admin Login",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "var json = pm.response.json();",
+                      "if (json.data && json.data.token) {",
+                      "    pm.collectionVariables.set('adminToken', json.data.token);",
+                      "    pm.collectionVariables.set('authToken', json.data.token);",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"identifier\": \"decodexfashionwear@gmail.com\",\n  \"password\": \"Admin@12345\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "login"
+                  ]
+                },
+                "description": "Authenticate as an Administrator (decodexfashionwear@gmail.com). Automatically saves the admin JWT token into both adminToken and authToken collection variables for subsequent Admin API requests."
+              }
+            }
+          ]
+        },
+        {
+          "name": "Dashboard & Customers",
+          "item": [
+            {
+              "name": "Get Dashboard Metrics",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/metrics",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "metrics"
+                  ]
+                },
+                "description": "Get admin dashboard KPIs: today's sales, total orders, today's orders, total customers, active products, low stock count, orders by status, and recent orders."
+              }
+            },
+            {
+              "name": "Get Customer Details",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/customers/:id",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "customers",
+                    ":id"
+                  ],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "USER_ID_HERE",
+                      "description": "Customer User ID"
+                    }
+                  ]
+                },
+                "description": "Get detailed customer profile: name, contact, wallet balance, order count, total spent, successful referrals, and last order info."
+              }
+            },
+            {
+              "name": "List Customers (Search & Pagination)",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/customers?q=&page=1&limit=20",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "customers"
+                  ],
+                  "query": [
+                    {
+                      "key": "q",
+                      "value": "",
+                      "description": "Search by name, phone, or email"
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    }
+                  ]
+                },
+                "description": "Paginated customer list with order counts, total spend, and search filter."
+              }
+            },
+            {
+              "name": "Toggle Customer Active / Block Status",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"isActive\": false\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/customers/:id/status",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "customers",
+                    ":id",
+                    "status"
+                  ],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "{{customerId}}"
+                    }
+                  ]
+                },
+                "description": "Allows administrator to block or reactivate a customer account."
+              }
+            },
+            {
+              "name": "Create Customer Account",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"New Customer\",\n  \"phone\": \"9123456789\",\n  \"email\": \"newcustomer@example.com\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/customers",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "customers"
+                  ]
+                },
+                "description": "Admin creates a new customer account manually with auto-generated referral code and wallet."
+              }
+            },
+            {
+              "name": "Update Customer Details",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Updated Name\",\n  \"email\": \"updated@example.com\",\n  \"phone\": \"9876543210\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/customers/:id",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "customers",
+                    ":id"
+                  ],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "USER_ID_HERE"
+                    }
+                  ]
+                },
+                "description": "Admin updates customer name, email, and phone."
+              }
+            },
+            {
+              "name": "Delete Customer Account",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/customers/:id",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "customers",
+                    ":id"
+                  ],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "USER_ID_HERE"
+                    }
+                  ]
+                },
+                "description": "Delete a customer account. If orders exist, account is deactivated instead of permanent deletion."
+              }
+            }
+          ]
+        },
+        {
+          "name": "Catalog Management",
+          "item": [
+            {
+              "name": "Create Category (Level 1 Parent - Men/Women/Kids)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Men\",\n  \"slug\": \"men\",\n  \"description\": \"Men's fashion, apparel and accessories\",\n  \"image\": \"https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?auto=format&fit=crop&w=800&q=80\",\n  \"level\": 1,\n  \"sortOrder\": 1,\n  \"parentId\": null,\n  \"isActive\": true\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/categories",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "categories"
+                  ]
+                },
+                "description": "Create a top-level parent category (e.g. Men, Women, Kids). parentId must be null, level must be 1."
+              }
+            },
+            {
+              "name": "Create Subcategory (Level 2 - e.g. T-Shirts under Men)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"T-Shirts\",\n  \"slug\": \"men-tshirts\",\n  \"description\": \"Men's casual, graphic and polo t-shirts\",\n  \"image\": \"https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=800&q=80\",\n  \"level\": 2,\n  \"sortOrder\": 1,\n  \"parentId\": \"PARENT_CATEGORY_ID_HERE\",\n  \"isActive\": true\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/categories",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "categories"
+                  ]
+                },
+                "description": "Create a Level 2 subcategory under a Level 1 parent. Replace PARENT_CATEGORY_ID_HERE with the Level 1 category UUID."
+              }
+            },
+            {
+              "name": "Create Sub-subcategory (Level 3 - e.g. Oversized T-Shirts)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Oversized T-Shirts\",\n  \"slug\": \"men-oversized-tshirts\",\n  \"description\": \"Drop-shoulder oversized relaxed fits\",\n  \"image\": \"https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?auto=format&fit=crop&w=800&q=80\",\n  \"level\": 3,\n  \"sortOrder\": 1,\n  \"parentId\": \"SUBCATEGORY_ID_HERE\",\n  \"isActive\": true\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/categories",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "categories"
+                  ]
+                },
+                "description": "Create a specialized Level 3 sub-subcategory under a Level 2 subcategory. Replace SUBCATEGORY_ID_HERE with the Level 2 category UUID."
+              }
+            },
+            {
+              "name": "Update Category (by ID)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"id\": \"CATEGORY_ID_HERE\",\n  \"name\": \"Men's Premium T-Shirts\",\n  \"slug\": \"men-tshirts\",\n  \"description\": \"Updated description and attributes\",\n  \"image\": \"https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=800&q=80\",\n  \"level\": 2,\n  \"sortOrder\": 1,\n  \"parentId\": \"PARENT_CATEGORY_ID_HERE\",\n  \"isActive\": true\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/categories",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "categories"
+                  ]
+                },
+                "description": "Update an existing category. Passing `id` performs an update rather than create. Supports Google Drive or direct image URLs."
+              }
+            },
+            {
+              "name": "Toggle Category Status (Active/Inactive)",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"isActive\": false,\n  \"cascade\": true\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/categories/:id/status",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "categories",
+                    ":id",
+                    "status"
+                  ],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "CATEGORY_ID_HERE",
+                      "description": "Category ID"
+                    }
+                  ]
+                },
+                "description": "Activate or deactivate a category. Optionally pass `\"cascade\": true` to recursively activate/deactivate all descendant subcategories."
+              }
+            },
+            {
+              "name": "Delete Category",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/categories/:id",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "categories",
+                    ":id"
+                  ],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "CATEGORY_ID_HERE",
+                      "description": "Category ID"
+                    }
+                  ]
+                },
+                "description": "Permanently delete a category. Fails if any products are assigned to it — deactivate instead."
+              }
+            },
+            {
+              "name": "Create / Update Product with Variants",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"id\": \"\",\n  \"name\": \"Classic Cotton T-Shirt\",\n  \"slug\": \"classic-cotton-tshirt\",\n  \"description\": \"Premium 100% cotton t-shirt with a comfortable fit\",\n  \"brand\": \"StyleCraft\",\n  \"fabric\": \"Cotton\",\n  \"fit\": \"Regular\",\n  \"sleeve\": \"Half Sleeve\",\n  \"pattern\": \"Solid\",\n  \"categoryId\": \"CATEGORY_ID_HERE\",\n  \"basePrice\": 999,\n  \"sellingPrice\": 699,\n  \"buyingPrice\": 350,\n  \"isFeatured\": false,\n  \"isActive\": true,\n  \"images\": [\n    \"https://drive.google.com/file/d/FILE_ID_1/view\",\n    \"https://drive.google.com/file/d/FILE_ID_2/view\"\n  ],\n  \"variants\": [\n    {\n      \"sku\": \"CCT-BLK-S\",\n      \"size\": \"S\",\n      \"color\": \"Black\",\n      \"colorHex\": \"#000000\",\n      \"price\": 0,\n      \"stockQuantity\": 50,\n      \"isActive\": true\n    },\n    {\n      \"sku\": \"CCT-BLK-M\",\n      \"size\": \"M\",\n      \"color\": \"Black\",\n      \"colorHex\": \"#000000\",\n      \"price\": 0,\n      \"stockQuantity\": 75,\n      \"isActive\": true\n    },\n    {\n      \"sku\": \"CCT-WHT-L\",\n      \"size\": \"L\",\n      \"color\": \"White\",\n      \"colorHex\": \"#FFFFFF\",\n      \"price\": 0,\n      \"stockQuantity\": 60,\n      \"isActive\": true\n    }\n  ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/products",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "products"
+                  ]
+                },
+                "description": "Create a new product or update an existing one (upsert). Pass an existing `id` to update. Includes size/color variants with SKU, stock, and pricing. Images from Google Drive are auto-converted."
+              }
+            },
+            {
+              "name": "Update Variant Stock",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"stockQuantity\": 100\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/variants/:variantId/stock",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "variants",
+                    ":variantId",
+                    "stock"
+                  ],
+                  "variable": [
+                    {
+                      "key": "variantId",
+                      "value": "VARIANT_ID_HERE",
+                      "description": "Product Variant ID"
+                    }
+                  ]
+                },
+                "description": "Directly update the stock quantity for a specific product variant."
+              }
+            },
+            {
+              "name": "List Products (Admin View with Stock & Margins)",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/products?q=&lowStock=false&page=1&limit=20",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "products"
+                  ],
+                  "query": [
+                    {
+                      "key": "q",
+                      "value": "",
+                      "description": "Search product name or slug"
+                    },
+                    {
+                      "key": "lowStock",
+                      "value": "false",
+                      "description": "Filter stock <= 5"
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    }
+                  ]
+                },
+                "description": "Comprehensive product view including cost prices, profit margins, variant inventory, and inactive items."
+              }
+            },
+            {
+              "name": "Toggle Product Active / Draft Status",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/products/:id/status",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "products",
+                    ":id",
+                    "status"
+                  ],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "PRODUCT_ID_HERE"
+                    }
+                  ]
+                },
+                "description": "Quick toggle product active / inactive visibility."
+              }
+            },
+            {
+              "name": "Delete Product",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/products/:id",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "products",
+                    ":id"
+                  ],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "PRODUCT_ID_HERE"
+                    }
+                  ]
+                },
+                "description": "Deletes product if no customer order history exists."
+              }
+            }
+          ]
+        },
+        {
+          "name": "Order Fulfillment",
+          "item": [
+            {
+              "name": "Get All Orders (Admin)",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/orders?status=&paymentStatus=&page=1&limit=20",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "orders"
+                  ],
+                  "query": [
+                    {
+                      "key": "status",
+                      "value": "",
+                      "description": "Filter: PENDING_PAYMENT, CONFIRMED, SHIPPED, DELIVERED, CANCELLED"
+                    },
+                    {
+                      "key": "paymentStatus",
+                      "value": "",
+                      "description": "Filter: PENDING, SUCCESS, FAILED, REFUNDED"
+                    },
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Page number"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20",
+                      "description": "Items per page"
+                    }
+                  ]
+                },
+                "description": "List all orders with optional status and payment status filters. Includes pagination, user info, order items, and payments."
+              }
+            },
+            {
+              "name": "Get Order Details (Admin)",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/orders/:id",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "orders",
+                    ":id"
+                  ],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "ORDER_ID_HERE",
+                      "description": "Order ID"
+                    }
+                  ]
+                },
+                "description": "Get full order details for admin including user, items, payments, refunds, and status history."
+              }
+            },
+            {
+              "name": "Update Order Status",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"SHIPPED\",\n  \"courierPartner\": \"BlueDart Express\",\n  \"trackingNumber\": \"BLUEDART-882199\",\n  \"trackingUrl\": \"https://www.bluedart.com/tracking?awb=BLUEDART-882199\",\n  \"estimatedDelivery\": \"2026-09-25T18:00:00.000Z\",\n  \"reason\": \"Dispatched via courier partner\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/orders/:id/status",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "orders",
+                    ":id",
+                    "status"
+                  ],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "ORDER_ID_HERE",
+                      "description": "Order ID"
+                    }
+                  ]
+                },
+                "description": "Update order status. Supports tracking info (courierPartner, trackingNumber, trackingUrl, estimatedDelivery) when marking SHIPPED. Setting to DELIVERED auto-triggers referral rewards and marks COD as paid."
+              }
+            },
+            {
+              "name": "List Return Requests",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/returns",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "returns"
+                  ]
+                },
+                "description": "List all pending and processed customer return requests."
+              }
+            },
+            {
+              "name": "Process Return Request (Approve / Reject / Complete)",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"action\": \"APPROVE\",\n  \"adminRemarks\": \"Reverse pickup scheduled with courier partner\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/orders/:id/return",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "orders",
+                    ":id",
+                    "return"
+                  ],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "ORDER_ID_HERE"
+                    }
+                  ]
+                },
+                "description": "Admin processes return: action can be APPROVE (schedules reverse pickup), REJECT, or COMPLETE (verified at warehouse)."
+              }
+            }
+          ]
+        },
+        {
+          "name": "Payments & Refunds",
+          "item": [
+            {
+              "name": "Trigger Cashfree Refund",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"orderId\": \"ORDER_ID_HERE\",\n  \"amount\": 699,\n  \"reason\": \"Customer requested refund\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/refunds",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "refunds"
+                  ]
+                },
+                "description": "Initiate a Cashfree refund for a paid order. Amount is optional — defaults to full payment amount. Order must have paymentStatus = SUCCESS."
+              }
+            }
+          ]
+        },
+        {
+          "name": "Wallet Management",
+          "item": [
+            {
+              "name": "Adjust Customer Wallet (Credit)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userId\": \"{{customerId}}\",\n  \"amount\": 100,\n  \"type\": \"CREDIT\",\n  \"description\": \"Promotional bonus for festive season\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/wallet/adjust",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "wallet",
+                    "adjust"
+                  ]
+                },
+                "description": "Manually credit a customer's wallet. Uses {{customerId}} variable (default: Gokulvarthan 4159f7e5-f4a1-47b5-b2cd-cbc5a57b8f70). Automatically updates wallet balance and creates an audit ledger transaction."
+              }
+            },
+            {
+              "name": "Adjust Customer Wallet (Debit)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userId\": \"{{customerId}}\",\n  \"amount\": 50,\n  \"type\": \"DEBIT\",\n  \"description\": \"Admin manual deduction\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/wallet/adjust",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "wallet",
+                    "adjust"
+                  ]
+                },
+                "description": "Manually debit a customer's wallet. Fails if user does not have sufficient balance. Updates ledger."
+              }
+            }
+          ]
+        },
+        {
+          "name": "System Settings",
+          "item": [
+            {
+              "name": "Get All System Settings",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/settings",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "settings"
+                  ]
+                },
+                "description": "Get all dynamic system settings (first order offer, referral program, shipping config, COD settings, etc.)."
+              }
+            },
+            {
+              "name": "Update Store Profile & Support Settings",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"value\": {\n    \"name\": \"DecodeX Fashion Store\",\n    \"tagline\": \"Premium & Affordable Fashion Wear\",\n    \"logo_url\": \"https://example.com/logo.png\",\n    \"support_phone\": \"+91 7540032060\",\n    \"support_whatsapp\": \"+91 7540032060\",\n    \"support_email\": \"support@decodex.com\",\n    \"operating_hours\": \"Mon - Sat: 09:00 AM - 07:00 PM IST\",\n    \"return_window_days\": 7,\n    \"currency\": \"INR\",\n    \"currency_symbol\": \"₹\",\n    \"estimated_delivery_days\": \"2-5 Business Days\",\n    \"terms_url\": \"/terms-and-conditions\",\n    \"privacy_url\": \"/privacy-policy\",\n    \"about_us\": \"DecodeX brings you trendsetting apparel with exceptional comfort, premium fabrics, and unbeatable prices.\"\n  },\n  \"description\": \"Store contact info, branding, operating hours, and return policy window\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/settings/store",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "settings",
+                    "store"
+                  ]
+                },
+                "description": "Admin updates store name, support phone/WhatsApp, operating hours, and return window days. Changes reflect immediately on customer app."
+              }
+            },
+            {
+              "name": "Update Shipping Fee & Free Delivery Threshold",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"value\": {\n    \"standard_delivery_fee\": 50,\n    \"free_delivery_threshold\": 999,\n    \"estimated_delivery_days\": \"2-5 Business Days\"\n  },\n  \"description\": \"Standard delivery fee and free shipping order value threshold\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/settings/shipping",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "settings",
+                    "shipping"
+                  ]
+                },
+                "description": "Admin updates shipping charges and free delivery threshold. Backend auto-applies this during cart calculations and checkout."
+              }
+            },
+            {
+              "name": "Update Payment Methods (COD & Cashfree)",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"value\": {\n    \"cod_enabled\": true,\n    \"cod_fee\": 0,\n    \"cashfree_enabled\": true\n  },\n  \"description\": \"Payment method toggles and COD handling charges\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/settings/payments",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "settings",
+                    "payments"
+                  ]
+                },
+                "description": "Admin enables/disables Cash On Delivery (COD) or online Cashfree gateway, and sets COD handling fee."
+              }
+            },
+            {
+              "name": "Update First Order Offer Rules",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"value\": {\n    \"is_enabled\": true,\n    \"discount_amount\": 300,\n    \"min_order_value\": 1000\n  },\n  \"description\": \"First order welcome discount amount and minimum qualifying order value\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/settings/first_order_offer",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "settings",
+                    "first_order_offer"
+                  ]
+                },
+                "description": "Admin sets the automatic welcome discount for brand new customers."
+              }
+            },
+            {
+              "name": "Update Referral Rewards Program",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"value\": {\n    \"is_enabled\": true,\n    \"referrer_bonus\": 100,\n    \"referee_bonus\": 50,\n    \"min_qualifying_order\": 799,\n    \"reward_on_status\": \"DELIVERED\"\n  },\n  \"description\": \"Referral rewards for referrer and referee upon successful delivery\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/settings/referral_program",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "settings",
+                    "referral_program"
+                  ]
+                },
+                "description": "Admin configures the peer-to-peer referral rewards credited to customer wallets."
+              }
+            },
+            {
+              "name": "Update Wallet Redemption Rules",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"value\": {\n    \"max_order_redemption_percent\": 50\n  },\n  \"description\": \"Maximum percentage of order total that can be paid using wallet\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/settings/wallet",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "settings",
+                    "wallet"
+                  ]
+                },
+                "description": "Admin configures the maximum wallet balance percentage allowed per checkout order."
+              }
+            },
+            {
+              "name": "Update Home Announcement Bar",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"value\": {\n    \"is_enabled\": true,\n    \"text\": \"🎉 Mega Festive Season Sale is Live! Flat ₹300 OFF on First Order | Free Delivery Above ₹999\",\n    \"text_color\": \"#ffffff\",\n    \"background_color\": \"#0f172a\",\n    \"target_url\": \"/category/men\"\n  },\n  \"description\": \"Top header announcement bar displayed across the website and mobile app\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/settings/announcement_bar",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "settings",
+                    "announcement_bar"
+                  ]
+                },
+                "description": "Admin updates top header announcement bar (text, colors, click-through destination)."
+              }
+            },
+            {
+              "name": "Update Store Trust Badges",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"value\": [\n    { \"id\": \"1\", \"icon\": \"shield-check\", \"title\": \"100% Authentic Quality\", \"subtitle\": \"Handcrafted with premium certified fabrics\" },\n    { \"id\": \"2\", \"icon\": \"rotate-ccw\", \"title\": \"Easy 7-Day Returns\", \"subtitle\": \"Hassle-free doorstep pickup & quick refund\" },\n    { \"id\": \"3\", \"icon\": \"truck\", \"title\": \"Express Fast Delivery\", \"subtitle\": \"Dispatched within 24 hours across India\" },\n    { \"id\": \"4\", \"icon\": \"lock\", \"title\": \"100% Secure Checkout\", \"subtitle\": \"Encrypted UPI, Cards & NetBanking payments\" }\n  ],\n  \"description\": \"Trust badges displayed on homepage, product pages, and checkout\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/settings/trust_badges",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "settings",
+                    "trust_badges"
+                  ]
+                },
+                "description": "Admin updates store trust badges with custom icons, titles, and subheadings."
+              }
+            },
+            {
+              "name": "Update Social Media Links",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"value\": {\n    \"instagram\": \"https://instagram.com/decodex_fashion\",\n    \"whatsapp\": \"https://wa.me/917540032060\",\n    \"facebook\": \"https://facebook.com/decodexfashion\",\n    \"youtube\": \"https://youtube.com/@decodexfashion\",\n    \"twitter\": \"\"\n  },\n  \"description\": \"Social media profiles linked in header, footer, and help drawers\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/settings/social_links",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "settings",
+                    "social_links"
+                  ]
+                },
+                "description": "Admin updates company social media channels."
+              }
+            },
+            {
+              "name": "Update Legal Policies Text",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"value\": {\n    \"terms_and_conditions\": \"Welcome to DecodeX Fashion Store. By purchasing, you agree to our terms...\",\n    \"privacy_policy\": \"Your personal data is encrypted and never shared with third parties...\",\n    \"return_and_refund_policy\": \"Returns are accepted within the policy window. Reverse pickup is free...\",\n    \"shipping_policy\": \"We ship via BlueDart and Delhivery within 24-48 hours...\"\n  },\n  \"description\": \"Full legal terms and policies displayed on website & mobile app pages\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/settings/policies",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "settings",
+                    "policies"
+                  ]
+                },
+                "description": "Admin updates full text of Terms of Service, Privacy Policy, Return Policy, and Shipping Policy."
+              }
+            },
+            {
+              "name": "Update Store FAQs",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"value\": [\n    { \"id\": \"1\", \"category\": \"Orders & Tracking\", \"question\": \"How can I track my order?\", \"answer\": \"Track your order live via the My Orders tab or using the AWB link sent via WhatsApp.\" },\n    { \"id\": \"2\", \"category\": \"Payments\", \"question\": \"What payment methods do you accept?\", \"answer\": \"We accept UPI, Cards, Net Banking via Cashfree, and Cash on Delivery (COD).\" },\n    { \"id\": \"3\", \"category\": \"Returns\", \"question\": \"How do I request a return?\", \"answer\": \"Click 'Request Return' on any delivered order in My Orders within 7 days.\" }\n  ],\n  \"description\": \"Store FAQ questions and answers\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/settings/faqs",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "settings",
+                    "faqs"
+                  ]
+                },
+                "description": "Admin configures frequently asked questions and answers displayed in customer help sections."
+              }
+            },
+            {
+              "name": "Update Size Guide Charts",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"value\": [\n    {\n      \"category\": \"Men Tops\",\n      \"title\": \"Men Shirts & T-Shirts Size Chart\",\n      \"unit\": \"inches\",\n      \"columns\": [\"Size\", \"Chest\", \"Length\", \"Shoulder\"],\n      \"rows\": [\n        { \"Size\": \"S\", \"Chest\": \"38\", \"Length\": \"27.5\", \"Shoulder\": \"16.5\" },\n        { \"Size\": \"M\", \"Chest\": \"40\", \"Length\": \"28.5\", \"Shoulder\": \"17.5\" },\n        { \"Size\": \"L\", \"Chest\": \"42\", \"Length\": \"29.5\", \"Shoulder\": \"18.5\" },\n        { \"Size\": \"XL\", \"Chest\": \"44\", \"Length\": \"30.5\", \"Shoulder\": \"19.5\" },\n        { \"Size\": \"XXL\", \"Chest\": \"46\", \"Length\": \"31.5\", \"Shoulder\": \"20.5\" }\n      ]\n    }\n  ],\n  \"description\": \"Apparel size measurement guide charts\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/settings/size_guides",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "settings",
+                    "size_guides"
+                  ]
+                },
+                "description": "Admin configures size measurement matrices for categories shown on product detail pages."
+              }
+            },
+            {
+              "name": "Update Cart & Checkout Dynamic Prompts",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"value\": {\n    \"free_shipping_prompt_template\": \"Add items worth ₹{remaining} more for FREE Delivery!\",\n    \"free_shipping_unlocked_message\": \"🎉 Congratulations! You have unlocked FREE Delivery!\",\n    \"cod_threshold_notice\": \"Cash on Delivery (COD) available across India. Pay via Cash or UPI at delivery.\",\n    \"secure_checkout_badge_text\": \"100% Safe & Encrypted Checkout with 256-bit SSL\"\n  },\n  \"description\": \"Dynamic cart notifications, progress prompts, and trust notices\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/settings/cart_prompts",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "settings",
+                    "cart_prompts"
+                  ]
+                },
+                "description": "Admin configures dynamic cart notifications, free delivery unlocking progress prompts, and checkout trust badges."
+              }
+            },
+            {
+              "name": "Update App Theme & Brand Colors",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"value\": {\n    \"primaryColor\": \"#4F46E5\",\n    \"secondaryColor\": \"#06B6D4\",\n    \"accentColor\": \"#F59E0B\",\n    \"backgroundColor\": \"#FAFAFA\",\n    \"surfaceColor\": \"#FFFFFF\",\n    \"textColor\": \"#111827\",\n    \"fontFamily\": \"Inter, system-ui, sans-serif\",\n    \"borderRadius\": \"8px\",\n    \"darkMode\": false\n  },\n  \"description\": \"Brand theme palette, typography, and styling tokens\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/settings/theme",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "settings",
+                    "theme"
+                  ]
+                },
+                "description": "Admin updates visual brand styling tokens, color palette, typography font, and dark mode."
+              }
+            },
+            {
+              "name": "Update Navigation Header & Footer Menus",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"value\": {\n    \"header\": [\n      { \"title\": \"New Arrivals\", \"link\": \"/products?sort=newest\", \"badge\": \"Hot\" },\n      { \"title\": \"Best Sellers\", \"link\": \"/products?sort=popularity\" },\n      { \"title\": \"Offers\", \"link\": \"/offers\", \"badge\": \"50% OFF\" }\n    ],\n    \"footer\": [\n      {\n        \"section\": \"Shop\",\n        \"links\": [\n          { \"label\": \"Men Fashion\", \"url\": \"/category/men\" },\n          { \"label\": \"Women Fashion\", \"url\": \"/category/women\" }\n        ]\n      },\n      {\n        \"section\": \"Support\",\n        \"links\": [\n          { \"label\": \"Track Order\", \"url\": \"/track-order\" },\n          { \"label\": \"Return Policy\", \"url\": \"/returns\" },\n          { \"label\": \"FAQs\", \"url\": \"/faqs\" }\n        ]\n      }\n    ]\n  },\n  \"description\": \"Header navigation bar and footer link columns\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/settings/navigation",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "settings",
+                    "navigation"
+                  ]
+                },
+                "description": "Admin configures the customer website & mobile app navigation menus."
+              }
+            },
+            {
+              "name": "Update Customer Testimonials",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"value\": [\n    {\n      \"id\": \"1\",\n      \"name\": \"Priya Sharma\",\n      \"city\": \"Mumbai\",\n      \"rating\": 5,\n      \"comment\": \"Amazing fabric quality! The dress fit perfectly and delivery was super fast.\",\n      \"avatar\": \"https://images.unsplash.com/photo-1494790108377-be9c29b29330\"\n    },\n    {\n      \"id\": \"2\",\n      \"name\": \"Rahul Verma\",\n      \"city\": \"Bengaluru\",\n      \"rating\": 5,\n      \"comment\": \"Exceptional customer support on WhatsApp and hassle-free returns.\",\n      \"avatar\": \"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d\"\n    }\n  ],\n  \"description\": \"Customer reviews and social proof testimonials featured on home screen\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/settings/testimonials",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "settings",
+                    "testimonials"
+                  ]
+                },
+                "description": "Admin curates reviews and customer testimonials displayed on the home page."
+              }
+            },
+            {
+              "name": "Update Order Cancellation & Return Reasons",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"value\": {\n    \"cancellation_reasons\": [\n      \"Found cheaper elsewhere\",\n      \"Ordered by mistake\",\n      \"Delivery time too long\",\n      \"Changed my mind\",\n      \"Payment issue / Want to change payment method\"\n    ],\n    \"return_reasons\": [\n      \"Size doesn't fit / Wrong size\",\n      \"Quality not as expected\",\n      \"Damaged / Defective item\",\n      \"Item different from description\",\n      \"Received wrong product\"\n    ]\n  },\n  \"description\": \"Dropdown options for order cancellations and customer returns\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/settings/order_reasons",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "settings",
+                    "order_reasons"
+                  ]
+                },
+                "description": "Admin updates selectable reasons shown to customers when cancelling orders or requesting returns."
+              }
+            },
+            {
+              "name": "Update Pincode Serviceability Rules",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"value\": {\n    \"defaultServiceable\": true,\n    \"defaultEstimatedDays\": 4,\n    \"defaultCodAvailable\": true,\n    \"blockedPincodes\": [\"110000\", \"999999\"],\n    \"expressPincodes\": [\"560001\", \"560002\", \"560034\", \"400001\", \"110001\"],\n    \"expressEstimatedDays\": 2\n  },\n  \"description\": \"Pincode delivery validation and express shipping rules\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/settings/pincodes",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "settings",
+                    "pincodes"
+                  ]
+                },
+                "description": "Admin manages pincode whitelist/blacklist, express delivery zones, and COD availability rules."
+              }
+            }
+          ]
+        },
+        {
+          "name": "Offer Management",
+          "item": [
+            {
+              "name": "Get All Offers",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/offers",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "offers"
+                  ]
+                },
+                "description": "List all offers/coupons sorted by creation date (newest first)."
+              }
+            },
+            {
+              "name": "Create / Update Offer",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"id\": \"\",\n  \"name\": \"WELCOME50\",\n  \"type\": \"PERCENTAGE\",\n  \"value\": 50,\n  \"minimumOrderAmount\": 500,\n  \"firstOrderOnly\": true,\n  \"perUserLimit\": 1,\n  \"usageLimit\": 1000,\n  \"startAt\": \"2026-01-01T00:00:00.000Z\",\n  \"endAt\": \"2026-12-31T23:59:59.000Z\",\n  \"isActive\": true\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/offers",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "offers"
+                  ]
+                },
+                "description": "Create or update an offer/coupon (upsert). Pass existing `id` to update. Type: FIXED or PERCENTAGE. Supports first-order-only, per-user limits, global usage limits, and date ranges."
+              }
+            },
+            {
+              "name": "Toggle Offer Active Status",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/offers/:id/status",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "offers",
+                    ":id",
+                    "status"
+                  ],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "OFFER_ID_HERE"
+                    }
+                  ]
+                },
+                "description": "Toggle promotional offer active state."
+              }
+            },
+            {
+              "name": "Delete Offer",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/offers/:id",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "offers",
+                    ":id"
+                  ],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "OFFER_ID_HERE"
+                    }
+                  ]
+                },
+                "description": "Permanently remove a promotional offer."
+              }
+            }
+          ]
+        },
+        {
+          "name": "Banner Management",
+          "description": "Home screen promotional sliders, hero banners, and seasonal marketing carousels.",
+          "item": [
+            {
+              "name": "List All Banners",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/banners",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "banners"
+                  ]
+                },
+                "description": "Returns all configured promotional banners."
+              }
+            },
+            {
+              "name": "Create or Update Banner",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Mega Festive Sale - Flat 50% OFF\",\n  \"imageUrl\": \"https://images.unsplash.com/photo-1441986300917-64674bd600d8\",\n  \"targetType\": \"CATEGORY\",\n  \"targetValue\": \"kids-wear\",\n  \"sortOrder\": 1,\n  \"isActive\": true\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/banners",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "banners"
+                  ]
+                },
+                "description": "Create or update promotional banner. Supports Google Drive or direct image URLs."
+              }
+            },
+            {
+              "name": "Toggle Banner Active Status",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/banners/:id/status",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "banners",
+                    ":id",
+                    "status"
+                  ],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "BANNER_ID_HERE"
+                    }
+                  ]
+                },
+                "description": "Toggle banner visibility on customer home screen."
+              }
+            },
+            {
+              "name": "Delete Banner",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/banners/:id",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "banners",
+                    ":id"
+                  ],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "BANNER_ID_HERE"
+                    }
+                  ]
+                },
+                "description": "Permanently delete a banner."
+              }
+            }
+          ]
+        },
+        {
+          "name": "Coupon Management",
+          "description": "Create and manage promo discount coupons.",
+          "item": [
+            {
+              "name": "List All Coupons",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/coupons",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "coupons"
+                  ]
+                },
+                "description": "List all discount coupons with real usage metrics."
+              }
+            },
+            {
+              "name": "Create or Update Coupon",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"code\": \"FESTIVE200\",\n  \"discountType\": \"FIXED\",\n  \"discountValue\": 200,\n  \"minOrderAmount\": 999,\n  \"maxDiscount\": 200,\n  \"usageLimit\": 500,\n  \"perUserLimit\": 1,\n  \"isActive\": true\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/coupons",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "coupons"
+                  ]
+                },
+                "description": "Create or update a discount coupon."
+              }
+            },
+            {
+              "name": "Toggle Coupon Active Status",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/coupons/:id/status",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "coupons",
+                    ":id",
+                    "status"
+                  ],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "COUPON_ID_HERE"
+                    }
+                  ]
+                },
+                "description": "Activate or deactivate a discount coupon."
+              }
+            },
+            {
+              "name": "Delete Coupon",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/coupons/:id",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "coupons",
+                    ":id"
+                  ],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "COUPON_ID_HERE"
+                    }
+                  ]
+                },
+                "description": "Delete a discount coupon."
+              }
+            }
+          ]
+        },
+        {
+          "name": "Marketing Broadcasts",
+          "description": "Broadcast in-app promotional announcements to all customers.",
+          "item": [
+            {
+              "name": "Broadcast In-App Announcement",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"🎉 Weekend Mega Flash Sale!\",\n  \"message\": \"Get extra ₹200 OFF with coupon FESTIVE200 on all orders above ₹999.\",\n  \"type\": \"PROMO\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/notifications/broadcast",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "notifications",
+                    "broadcast"
+                  ]
+                },
+                "description": "Broadcast an in-app notice or push promo announcement to all registered customers."
+              }
+            }
+          ]
+        },
+        {
+          "name": "Audit & Inventory Ledger",
+          "description": "System-level audit logs and stock movement transaction ledgers.",
+          "item": [
+            {
+              "name": "Get Admin Audit Logs",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/audit-logs?entity=&page=1&limit=20",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "audit-logs"
+                  ],
+                  "query": [
+                    {
+                      "key": "entity",
+                      "value": "",
+                      "description": "Filter by entity (e.g., Product, Order, User)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "disabled": true
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Retrieve admin audit log trail documenting administrative changes, settings updates, and actions."
+              }
+            },
+            {
+              "name": "Get Inventory Transactions Ledger",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/inventory/transactions?variantId=&type=&page=1&limit=20",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "inventory",
+                    "transactions"
+                  ],
+                  "query": [
+                    {
+                      "key": "variantId",
+                      "value": "",
+                      "description": "Filter by product variant UUID",
+                      "disabled": true
+                    },
+                    {
+                      "key": "type",
+                      "value": "",
+                      "description": "Filter by type (SALE, RETURN, RESTOCK, ADMIN_ADJUSTMENT)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "disabled": true
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Full chronological ledger of all stock quantity movements (sales, cancellations restocks, return inbound, and admin adjustments)."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Vendor Portal",
+      "item": [
+        {
+          "name": "Register Shop",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/vendor/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "vendor",
+                "register"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Demo Vendor Store\",\n  \"description\": \"A cool new store\",\n  \"businessEmail\": \"vendor@demo.com\",\n  \"businessPhone\": \"9876543210\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get My Shop",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/vendor/shop",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "vendor",
+                "shop"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Shop Orders",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/vendor/orders",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "vendor",
+                "orders"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get My Vendor Products",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/vendor/products",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "vendor",
+                "products"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Vendor Product",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/vendor/products",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "vendor",
+                "products"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Vendor Test Product\",\n  \"slug\": \"vendor-test-product\",\n  \"description\": \"A great product by vendor\",\n  \"brand\": \"VendorBrand\",\n  \"categoryId\": \"{{category_id}}\",\n  \"basePrice\": 500,\n  \"sellingPrice\": 450,\n  \"images\": [\n    \"https://example.com/img1.jpg\"\n  ],\n  \"variants\": [\n    {\n      \"sku\": \"VEND-1-M\",\n      \"size\": \"M\",\n      \"color\": \"Red\",\n      \"stockQuantity\": 50,\n      \"price\": 450\n    }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Vendor Product",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "replace_with_product_id"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Shops Directory",
+      "item": [
+        {
+          "name": "List Shops",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/shops",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "shops"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Shop by Slug",
+          "request": {
+            "method": "GET",
+            "url": {
+              "variable": [
+                {
+                  "key": "slug",
+                  "value": "flagship-store"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin Shops",
+      "item": [
+        {
+          "name": "List All Shops",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/shops",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "shops"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Shop Status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/shops/:id/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "shops",
+                ":id",
+                "status"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ACTIVE\",\n  \"commissionRate\": 10\n}"
+            }
+          }
+        }
+      ]
+    }
+  ]
 }

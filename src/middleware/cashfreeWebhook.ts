@@ -26,7 +26,7 @@ export const verifyCashfreeWebhook = (req: Request, res: Response, next: NextFun
   }
 
   const rawBody = req.rawBody || JSON.stringify(req.body);
-  const clientSecret = ENV.CASHFREE.SECRET_KEY;
+  const clientSecret = ENV.CASHFREE.WEBHOOK_SECRET || ENV.CASHFREE.SECRET_KEY;
 
   if (!clientSecret) {
     res.status(500).json({

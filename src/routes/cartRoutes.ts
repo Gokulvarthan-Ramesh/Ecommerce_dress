@@ -12,7 +12,9 @@ router.get('/', CartController.getCart);
 router.post('/items', validateRequest(addToCartSchema), CartController.addToCart);
 router.post('/add', validateRequest(addToCartSchema), CartController.addToCart);
 router.patch('/items/:id', validateRequest(updateCartItemSchema), CartController.updateQuantity);
+router.put('/items/:id', validateRequest(updateCartItemSchema), CartController.updateQuantity);
 router.delete('/items/:id', CartController.removeFromCart);
+
 router.delete('/', CartController.clearCart);
 
 export default router;

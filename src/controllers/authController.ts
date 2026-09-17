@@ -44,4 +44,26 @@ export class AuthController {
       next(error);
     }
   }
+
+  static async updateProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const { name, email } = req.body;
+      const result = await AuthService.updateProfile(userId, { name, email });
+      ApiResponse.success(res, result, 'Profile updated successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async deleteAccount(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const result = await AuthService.deleteAccount(userId);
+      ApiResponse.success(res, result, 'Account deactivated successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
 }
+

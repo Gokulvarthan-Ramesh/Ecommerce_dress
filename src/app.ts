@@ -8,8 +8,15 @@ import { errorHandler } from './middleware/errorHandler';
 
 const app: Application = express();
 
-// Security Headers
-app.use(helmet());
+import path from 'path';
+
+// Security Headers (allow Cashfree JS SDK and modal iframe)
+app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
+
+// Serve test-payment playground directly
+app.get(['/test-payment', '/test-payment.html'], (_req: Request, res: Response) => {
+  res.sendFile(path.join(process.cwd(), 'test-payment.html'));
+});
 
 // Rate Limiting
 const limiter = rateLimit({

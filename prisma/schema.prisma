@@ -13,7 +13,9 @@ datasource db {
 enum Role {
   CUSTOMER
   ADMIN
+  VENDOR
 }
+
 
 enum OrderStatus {
   PENDING_PAYMENT
@@ -95,12 +97,18 @@ model User {
   offerUsages   OfferUsage[]
   couponUsages  CouponUsage[]
   referralRewards ReferralReward[]
+  ownedShops    Shop[]         @relation("ShopOwner")
+  shopMembers   ShopMember[]
+
+  reviews       Review[]
+  wishlist      Wishlist?
 
   @@index([phone])
   @@index([email])
   @@index([referralCode])
   @@map("users")
 }
+
 
 model Address {
   id           String   @id @default(uuid())
@@ -173,11 +181,18 @@ model Product {
   variants     ProductVariant[]
   images       ProductImage[]
   orderItems   OrderItem[]
+  reviews      Review[]
+  wishlists    WishlistItem[]
+
+  shopId       String?
+  shop         Shop?            @relation(fields: [shopId], references: [id])
 
   @@index([categoryId])
   @@index([slug])
+  @@index([shopId])
   @@map("products")
 }
+
 
 model ProductImage {
   id        String   @id @default(uuid())
@@ -273,10 +288,22 @@ model Order {
   appliedCouponId    String?
   appliedCoupon      Coupon?       @relation(fields: [appliedCouponId], references: [id])
   
+  // Shipment Tracking (Admin Controlled)
+  courierPartner     String?
+  trackingNumber     String?
+  trackingUrl        String?
+  estimatedDelivery  DateTime?
+
+  // Return Management
+  returnReason       String?
+  returnRequestedAt  DateTime?
+  returnStatus       String?       @default("NONE") // NONE, REQUESTED, APPROVED, REJECTED, PICKED_UP, COMPLETED
+
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 
   orderItems         OrderItem[]
+  subOrders          SubOrder[]
   statusHistory      OrderStatusHistory[]
   payments           Payment[]
   paymentAttempts    PaymentAttempt[]
@@ -298,6 +325,12 @@ model OrderItem {
   product      Product        @relation(fields: [productId], references: [id])
   variantId    String
   variant      ProductVariant @relation(fields: [variantId], references: [id])
+  
+  shopId       String?
+  shop         Shop?          @relation(fields: [shopId], references: [id])
+  subOrderId   String?
+  subOrder     SubOrder?      @relation(fields: [subOrderId], references: [id], onDelete: Cascade)
+
   productName  String
   sku          String
   size         String
@@ -309,8 +342,11 @@ model OrderItem {
   @@index([orderId])
   @@index([productId])
   @@index([variantId])
+  @@index([shopId])
+  @@index([subOrderId])
   @@map("order_items")
 }
+
 
 model OrderStatusHistory {
   id          String       @id @default(uuid())
@@ -644,3 +680,218 @@ model Notification {
   @@index([userId])
   @@map("notifications")
 }
+
+// ==========================================
+// 12. STORE BANNERS & PROMOTIONS
+// ==========================================
+model Banner {
+  id          String   @id @default(uuid())
+  title       String
+  imageUrl    String
+  targetType  String   @default("NONE") // CATEGORY, PRODUCT, EXTERNAL, NONE
+  targetValue String?  // Category ID/slug, Product ID/slug, or external URL
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive, sortOrder])
+  @@map("banners")
+}
+
+// ==========================================
+// 13. MULTI-SHOP / VENDOR MARKETPLACE
+// ==========================================
+
+enum ShopStatus {
+  PENDING_VERIFICATION
+  ACTIVE
+  SUSPENDED
+  CLOSED
+}
+
+enum SubOrderStatus {
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  RETURN_REQUESTED
+  RETURNED
+}
+
+enum PayoutStatus {
+  PENDING
+  PROCESSING
+  PAID
+  REJECTED
+}
+
+enum ShopMemberRole {
+  OWNER
+  MANAGER
+  STAFF
+}
+
+model Shop {
+  id                  String       @id @default(uuid())
+  ownerId             String
+  owner               User         @relation("ShopOwner", fields: [ownerId], references: [id])
+  name                String
+  slug                String       @unique
+  description         String?
+  logoUrl             String?
+  bannerUrl           String?
+  status              ShopStatus   @default(PENDING_VERIFICATION)
+  
+  // Contact & Address
+  businessEmail       String?
+  businessPhone       String?
+  supportPhone        String?
+  addressLine         String?
+  city                String?
+  state               String?
+  pincode             String?
+  
+  // Legal & Banking
+  gstin               String?
+  panNumber           String?
+  bankAccountNumber   String?
+  bankIfsc            String?
+  bankBeneficiaryName String?
+  
+  // Financials & Performance
+  commissionRate      Decimal      @default(10.00) @db.Decimal(5, 2)
+  balance             Decimal      @default(0.00) @db.Decimal(10, 2)
+  totalEarned         Decimal      @default(0.00) @db.Decimal(10, 2)
+  isOpen              Boolean      @default(true)
+  rating              Decimal      @default(5.00) @db.Decimal(3, 2)
+  reviewCount         Int          @default(0)
+  
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  products            Product[]
+  subOrders           SubOrder[]
+  orderItems          OrderItem[]
+  payouts             ShopPayout[]
+  members             ShopMember[]
+  reviews             Review[]
+
+  @@index([status])
+  @@index([ownerId])
+  @@map("shops")
+}
+
+model ShopMember {
+  id        String         @id @default(uuid())
+  shopId    String
+  shop      Shop           @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      ShopMemberRole @default(STAFF)
+  createdAt DateTime       @default(now())
+
+  @@unique([shopId, userId])
+  @@map("shop_members")
+}
+
+model SubOrder {
+  id                String         @id @default(uuid())
+  subOrderNumber    String         @unique
+  parentOrderId     String
+  parentOrder       Order          @relation(fields: [parentOrderId], references: [id], onDelete: Cascade)
+  shopId            String
+  shop              Shop           @relation(fields: [shopId], references: [id])
+  status            SubOrderStatus @default(CONFIRMED)
+  
+  subtotal          Decimal        @db.Decimal(10, 2)
+  shippingFee       Decimal        @default(0.00) @db.Decimal(10, 2)
+  commissionRate    Decimal        @default(10.00) @db.Decimal(5, 2)
+  commissionAmount  Decimal        @default(0.00) @db.Decimal(10, 2)
+  shopPayoutAmount  Decimal        @default(0.00) @db.Decimal(10, 2)
+  
+  courierPartner    String?
+  trackingNumber    String?
+  trackingUrl       String?
+  shippedAt         DateTime?
+  deliveredAt       DateTime?
+  cancelledAt       DateTime?
+  cancelReason      String?
+
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  items             OrderItem[]
+
+  @@index([parentOrderId])
+  @@index([shopId])
+  @@index([status])
+  @@map("sub_orders")
+}
+
+model ShopPayout {
+  id              String       @id @default(uuid())
+  shopId          String
+  shop            Shop         @relation(fields: [shopId], references: [id])
+  amount          Decimal      @db.Decimal(10, 2)
+  status          PayoutStatus @default(PENDING)
+  bankReference   String?
+  notes           String?
+  requestedAt     DateTime     @default(now())
+  processedAt     DateTime?
+  createdAt       DateTime     @default(now())
+
+  @@index([shopId])
+  @@index([status])
+  @@map("shop_payouts")
+}
+
+// ==========================================
+// NEW FEATURES: REVIEWS AND WISHLISTS
+// ==========================================
+model Review {
+  id                String   @id @default(uuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id])
+  productId         String
+  product           Product  @relation(fields: [productId], references: [id])
+  shopId            String?
+  shop              Shop?    @relation(fields: [shopId], references: [id])
+  
+  rating            Int      // 1 to 5
+  comment           String?  @db.Text
+  isVerifiedPurchase Boolean @default(false)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([productId])
+  @@index([shopId])
+  @@index([userId])
+  @@map("reviews")
+}
+
+model Wishlist {
+  id        String         @id @default(uuid())
+  userId    String         @unique
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     WishlistItem[]
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@map("wishlists")
+}
+
+model WishlistItem {
+  id         String   @id @default(uuid())
+  wishlistId String
+  wishlist   Wishlist @relation(fields: [wishlistId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([wishlistId, productId])
+  @@map("wishlist_items")
+}
+

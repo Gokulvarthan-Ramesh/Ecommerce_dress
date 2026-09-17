@@ -5,8 +5,9 @@ import { ENV } from '../config/env';
 export interface AuthenticatedUser {
   id: string;
   email: string;
-  role: 'CUSTOMER' | 'ADMIN';
+  role: 'CUSTOMER' | 'ADMIN' | 'VENDOR';
 }
+
 
 declare global {
   namespace Express {

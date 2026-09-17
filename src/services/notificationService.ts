@@ -63,6 +63,24 @@ export class NotificationService {
   }
 
   /**
+   * Delete a single notification for a user
+   */
+  static async deleteNotification(userId: string, notificationId: string) {
+    return prisma.notification.deleteMany({
+      where: { id: notificationId, userId },
+    });
+  }
+
+  /**
+   * Delete all notifications for a user
+   */
+  static async deleteAllNotifications(userId: string) {
+    return prisma.notification.deleteMany({
+      where: { userId },
+    });
+  }
+
+  /**
    * Get unread count for badge display
    */
   static async getUnreadCount(userId: string) {

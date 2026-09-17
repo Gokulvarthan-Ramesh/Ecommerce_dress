@@ -8,6 +8,7 @@ import { ReferralRepository } from '../repositories/ReferralRepository';
 import { WalletService } from './walletService';
 import { ReferralService } from './referralService';
 import { WhatsAppService } from './whatsappService';
+import { prisma } from '../config/db';
 import { Role } from '@prisma/client';
 import { cleanIndianPhoneNumber } from '../utils/phone';
 
@@ -35,7 +36,7 @@ export class AuthService {
       data: {
         whatsappNumber: cleanPhone,
         expiresInSeconds: 300,
-        ...(process.env.NODE_ENV === 'development' && { devOtp: otp }),
+        ...(ENV.SHOW_DEV_OTP && { devOtp: otp }),
       },
     };
   }
@@ -85,7 +86,7 @@ export class AuthService {
     }
 
     // 4. Hash password
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(password, ENV.BCRYPT_SALT_ROUNDS);
 
     // 4. Create user
     const userReferralCode = `${name.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, 'X')}${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
@@ -209,4 +210,54 @@ export class AuthService {
       successfulReferrals: referralCount,
     };
   }
+
+  static async updateProfile(userId: string, data: { name?: string; email?: string }) {
+    const user = await UserRepository.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new AppError('User not found', 404);
+    }
+
+    if (data.email && data.email !== user.email) {
+      const existingEmail = await UserRepository.findUnique({ where: { email: data.email.trim() } });
+      if (existingEmail && existingEmail.id !== userId) {
+        throw new AppError('Email address is already in use by another account', 400);
+      }
+    }
+
+    const updated = await UserRepository.update({
+      where: { id: userId },
+      data: {
+        ...(data.name && { name: data.name.trim() }),
+        ...(data.email && { email: data.email.trim() }),
+      },
+    });
+
+    return this.getProfile(updated.id);
+  }
+
+  static async deleteAccount(userId: string) {
+    const user = await UserRepository.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new AppError('User not found', 404);
+    }
+
+    const activeOrders = await prisma.order.count({
+      where: {
+        userId,
+        status: { in: ['CONFIRMED', 'PROCESSING', 'SHIPPED', 'RETURN_REQUESTED'] },
+      },
+    });
+
+    if (activeOrders > 0) {
+      throw new AppError('Cannot delete account with active or in-transit orders. Please wait for delivery.', 400);
+    }
+
+    await UserRepository.update({
+      where: { id: userId },
+      data: { isActive: false },
+    });
+
+    return { success: true, message: 'Account deactivated successfully' };
+  }
 }
+

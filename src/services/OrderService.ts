@@ -6,7 +6,7 @@ import { WalletService } from './walletService';
 import { CashfreeService } from './cashfreeService';
 import { NotificationService } from './notificationService';
 import { SystemSettingService } from './systemSettingService';
-import { OrderStatus, PaymentMethod, PaymentStatus, WalletTxCategory } from '@prisma/client';
+import { OrderStatus, PaymentMethod, PaymentStatus, WalletTxCategory, WalletTxType, SubOrderStatus } from '@prisma/client';
 import { CartRepository } from '../repositories/CartRepository';
 
 export class OrderService {
@@ -310,10 +310,32 @@ export class OrderService {
     }
     if (order.status === OrderStatus.CANCELLED) throw new AppError('Order is already cancelled');
 
+    let cfRefundId: string | null = null;
+    if (order.paymentStatus === PaymentStatus.SUCCESS) {
+      const refundId = `REF-${order.orderNumber}-${Date.now()}`;
+      const refundAmount = Number(order.paymentAmount);
+      try {
+        const result = await CashfreeService.initiateRefund({
+          orderId: order.id,
+          refundAmount,
+          refundId,
+          refundNote: reason,
+        });
+        cfRefundId = result?.cfRefundId || refundId;
+      } catch (err: any) {
+        console.error('[CANCEL] Cashfree refund initiation error:', err?.message || err);
+      }
+    }
+
     await prisma.$transaction(async (tx) => {
       await tx.order.update({
         where: { id: order.id },
-        data: { status: OrderStatus.CANCELLED },
+        data: {
+          status: OrderStatus.CANCELLED,
+          ...(order.paymentStatus === PaymentStatus.SUCCESS && {
+            paymentStatus: PaymentStatus.REFUNDED,
+          }),
+        },
       });
       
       await tx.orderStatusHistory.create({
@@ -324,6 +346,16 @@ export class OrderService {
           changedBy: userId,
           reason: reason 
         }
+      });
+
+      // Cascade cancellation to all sub-orders
+      await tx.subOrder.updateMany({
+        where: { parentOrderId: order.id, status: { not: SubOrderStatus.CANCELLED } },
+        data: {
+          status: SubOrderStatus.CANCELLED,
+          cancelledAt: new Date(),
+          cancelReason: reason || 'Parent order cancelled',
+        },
       });
 
       for (const item of order.orderItems) {
@@ -337,43 +369,46 @@ export class OrderService {
       }
 
       if (Number(order.walletAmount) > 0) {
-        await WalletService.creditWallet({
-          userId: order.userId,
-          amount: Number(order.walletAmount),
-          category: WalletTxCategory.REFUND,
-          referenceId: order.id,
-          description: `Refund of wallet balance for cancelled order #${order.orderNumber}`,
+        let wallet = await tx.wallet.findUnique({ where: { userId: order.userId } });
+        if (!wallet) {
+          wallet = await tx.wallet.create({ data: { userId: order.userId, balance: 0 } });
+        }
+        const balanceBefore = Number(wallet.balance);
+        const refundAmt = Number(order.walletAmount);
+        const balanceAfter = balanceBefore + refundAmt;
+
+        await tx.wallet.update({
+          where: { id: wallet.id },
+          data: { balance: balanceAfter },
+        });
+
+        await tx.walletTransaction.create({
+          data: {
+            walletId: wallet.id,
+            amount: refundAmt,
+            balanceBefore,
+            balanceAfter,
+            type: WalletTxType.CREDIT,
+            category: WalletTxCategory.REFUND,
+            referenceType: 'ORDER',
+            referenceId: order.id,
+            description: `Refund of wallet balance for cancelled order #${order.orderNumber}`,
+          },
         });
       }
 
       if (order.paymentStatus === PaymentStatus.SUCCESS) {
-        const refundId = `REF-${order.orderNumber}-${Date.now()}`;
-        const refundAmount = Number(order.paymentAmount);
-        
-        await CashfreeService.initiateRefund({
-          orderId: order.id,
-          refundAmount,
-          refundId,
-          refundNote: reason,
-        });
-
-        // Use the first payment ID if available
         const pId = order.payments[0]?.id;
-
         await tx.refund.create({
           data: {
             orderId: order.id,
             paymentId: pId,
-            cfRefundId: refundId,
-            amount: refundAmount,
+            cfRefundId: cfRefundId || `REF-${order.orderNumber}-${Date.now()}`,
+            amount: Number(order.paymentAmount),
             reason,
             status: PaymentStatus.SUCCESS,
+            processedAt: new Date(),
           },
-        });
-
-        await tx.order.update({
-          where: { id: order.id },
-          data: { paymentStatus: PaymentStatus.REFUNDED },
         });
       }
     });

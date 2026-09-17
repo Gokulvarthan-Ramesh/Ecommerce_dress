@@ -10,3 +10,15 @@ export const requireAdmin = (req: Request, res: Response, next: NextFunction): v
   }
   next();
 };
+
+export const requireVendor = (req: Request, res: Response, next: NextFunction): void => {
+  if (!req.user || (req.user.role !== 'VENDOR' && req.user.role !== 'ADMIN')) {
+    res.status(403).json({
+      success: false,
+      message: 'Access denied: Vendor privileges required',
+    });
+    return;
+  }
+  next();
+};
+
