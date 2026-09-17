@@ -1,0 +1,1104 @@
+{
+	"info": {
+		"_postman_id": "ecommerce-api-full-collection",
+		"name": "Ecommerce API – Full Collection",
+		"description": "Complete Postman collection for the Ecommerce REST API.\n\nBase URL: {{baseUrl}} (default http://localhost:5000)\n\n**Authentication**: Most endpoints require a Bearer token. After login/register, copy the token into the `authToken` collection variable. All authenticated folders inherit it automatically.\n\n**Admin endpoints**: Require an admin-role JWT.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:5000",
+			"type": "string"
+		},
+		{
+			"key": "authToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "adminToken",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Health",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/health",
+							"host": ["{{baseUrl}}"],
+							"path": ["health"]
+						},
+						"description": "Returns API health status, timestamp, and service name."
+					}
+				}
+			]
+		},
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Send WhatsApp OTP",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"phone\": \"9876543210\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/send-otp",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "send-otp"]
+						},
+						"description": "Sends a 6-digit OTP to the given phone number via WhatsApp."
+					}
+				},
+				{
+					"name": "Register",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var json = pm.response.json();",
+									"if (json.data && json.data.token) {",
+									"    pm.collectionVariables.set('authToken', json.data.token);",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"phone\": \"9876543210\",\n  \"otp\": \"123456\",\n  \"password\": \"securePass123\",\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"referralCode\": \"\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/register",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "register"]
+						},
+						"description": "Register a new user. OTP must be verified first via /send-otp. Optionally pass a referralCode. Auto-saves returned token."
+					}
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var json = pm.response.json();",
+									"if (json.data && json.data.token) {",
+									"    pm.collectionVariables.set('authToken', json.data.token);",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"identifier\": \"9876543210\",\n  \"password\": \"securePass123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "login"]
+						},
+						"description": "Login with phone/email and password. Auto-saves returned token to authToken variable."
+					}
+				},
+				{
+					"name": "Admin Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var json = pm.response.json();",
+									"if (json.data && json.data.token) {",
+									"    pm.collectionVariables.set('adminToken', json.data.token);",
+									"    pm.collectionVariables.set('authToken', json.data.token);",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"identifier\": \"admin@ecommerce.com\",\n  \"password\": \"Admin@12345\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "login"]
+						},
+						"description": "Login as Administrator (seeded: admin@ecommerce.com / Admin@12345). Auto-saves the returned token into both adminToken and authToken collection variables."
+					}
+				},
+				{
+					"name": "Get Profile",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{authToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/profile",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "profile"]
+						},
+						"description": "Get the authenticated user's profile details."
+					}
+				}
+			]
+		},
+		{
+			"name": "Categories",
+			"item": [
+				{
+					"name": "Get All Categories (with Full Filters)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/categories?mainSlug=men&status=active&level=2&search=&hasProducts=&sort=sortOrder_asc&tree=false&grouped=false&page=1&limit=20",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "categories"],
+							"query": [
+								{ "key": "mainSlug", "value": "men", "description": "Filter by main catalog: men, women, kids, or all", "disabled": true },
+								{ "key": "status", "value": "active", "description": "Filter by status: active, inactive, or all (default: active)", "disabled": true },
+								{ "key": "level", "value": "2", "description": "Filter by level: 1 (parent categories only: Men, Women, Kids), 2 (subcategories only)", "disabled": true },
+								{ "key": "parentSlug", "value": "men", "description": "Filter subcategories directly under parent slug (e.g. men, women, kids)", "disabled": true },
+								{ "key": "parentId", "value": "null", "description": "Filter by parent UUID, or 'null' for root categories only", "disabled": true },
+								{ "key": "search", "value": "shirt", "description": "Search category by name, description, or slug", "disabled": true },
+								{ "key": "hasProducts", "value": "true", "description": "Filter categories that have at least 1 product (true/false)", "disabled": true },
+								{ "key": "sort", "value": "sortOrder_asc", "description": "Sort order: sortOrder_asc, sortOrder_desc, name_asc, name_desc, products_desc, newest, oldest", "disabled": true },
+								{ "key": "tree", "value": "true", "description": "Return nested tree structure with subCategories under parent categories", "disabled": true },
+								{ "key": "grouped", "value": "true", "description": "Group categories by main category ({ all, men, women, kids })", "disabled": true },
+								{ "key": "page", "value": "1", "description": "Page number for pagination", "disabled": true },
+								{ "key": "limit", "value": "20", "description": "Items per page for pagination", "disabled": true }
+							]
+						},
+						"description": "List categories with comprehensive filtering:\n\n• `mainSlug`: 'men' | 'women' | 'kids' | 'all'\n• `status`: 'active' | 'inactive' | 'all'\n• `level`: 1 (parents) | 2 (subcategories)\n• `parentSlug`: 'men' | 'women' | 'kids'\n• `parentId`: UUID or 'null'\n• `search`: text search across name, description, slug\n• `hasProducts`: true | false\n• `sort`: 'sortOrder_asc' | 'name_asc' | 'products_desc' | 'newest'\n• `tree`: true (nested hierarchy)\n• `grouped`: true ({ all, men, women, kids })\n• `page` & `limit`: pagination metadata"
+					}
+				},
+				{
+					"name": "Get Category Details",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/categories/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "categories", ":id"],
+							"variable": [
+								{ "key": "id", "value": "CATEGORY_ID_HERE", "description": "Category ID" }
+							]
+						},
+						"description": "Get details for a specific category including its products."
+					}
+				}
+			]
+		},
+		{
+			"name": "Products",
+			"item": [
+				{
+					"name": "Get Catalog Filters (Detailed Facets)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/products/filters?mainSlug=men",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "products", "filters"],
+							"query": [
+								{ "key": "mainSlug", "value": "men", "description": "Scope filters to department: 'men', 'women', 'kids', or 'all'", "disabled": true },
+								{ "key": "category", "value": "men-tshirts", "description": "Scope filters to specific category or subcategory slug", "disabled": true }
+							]
+						},
+						"description": "Returns full, dynamic e-commerce catalog filter facets:\n\n• `totalProducts`: Total matching active products\n• `departments`: [{ name, slug, count }]\n• `categories`: [{ id, name, slug, mainSlug, level, parent, productCount }]\n• `categoryTree`: 3-level hierarchy with product counts\n• `brands`: [{ name, count }]\n• `sizes`: [{ size, count }]\n• `colors`: [{ color, hex, count }]\n• `fabrics`: [{ name, count }]\n• `fits`: [{ name, count }]\n• `sleeves`: [{ name, count }]\n• `patterns`: [{ name, count }]\n• `price`: { min, max, avg }\n• `priceBuckets`: [{ label, min, max, count }]\n• `sortOptions`: [{ label, value }]"
+					}
+				},
+				{
+					"name": "Get Products (List with Deep Filters)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/products?category=&mainSlug=&brand=&fabric=&fit=&sleeve=&pattern=&size=&color=&minPrice=&maxPrice=&inStock=true&isFeatured=&search=&sort=newest&page=1&limit=20",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "products"],
+							"query": [
+								{ "key": "page", "value": "1", "description": "Page number (default 1)" },
+								{ "key": "limit", "value": "20", "description": "Items per page (default 20)" },
+								{ "key": "category", "value": "men-tshirts", "description": "Category slug (matches direct category, children, and grandchildren)", "disabled": true },
+								{ "key": "mainSlug", "value": "men", "description": "Department filter: men, women, kids", "disabled": true },
+								{ "key": "brand", "value": "ClassicLine,StyleCraft", "description": "Filter by brand name (comma-separated for multi-brand)", "disabled": true },
+								{ "key": "fabric", "value": "Cotton,Linen", "description": "Filter by fabric (comma-separated)", "disabled": true },
+								{ "key": "fit", "value": "Slim,Regular", "description": "Filter by fit: Slim, Regular, Oversized, etc.", "disabled": true },
+								{ "key": "sleeve", "value": "Half Sleeve", "description": "Filter by sleeve type", "disabled": true },
+								{ "key": "pattern", "value": "Solid,Striped", "description": "Filter by pattern", "disabled": true },
+								{ "key": "size", "value": "M,L", "description": "Filter by size (comma-separated for multi-size)", "disabled": true },
+								{ "key": "color", "value": "Black,Navy Blue", "description": "Filter by color (comma-separated)", "disabled": true },
+								{ "key": "minPrice", "value": "500", "description": "Minimum selling price", "disabled": true },
+								{ "key": "maxPrice", "value": "1500", "description": "Maximum selling price", "disabled": true },
+								{ "key": "inStock", "value": "true", "description": "Only show products in stock (stockQuantity > 0)", "disabled": true },
+								{ "key": "isFeatured", "value": "true", "description": "Only show featured products", "disabled": true },
+								{ "key": "search", "value": "shirt", "description": "Search by product name, description, brand", "disabled": true },
+								{ "key": "sort", "value": "newest", "description": "Sort order: 'newest', 'price_asc', 'price_desc', 'name_asc', 'name_desc'", "disabled": true }
+							]
+						},
+						"description": "Get paginated products with full e-commerce filtering across categories, departments, brands, fabrics, fits, sleeves, patterns, sizes, colors, price ranges, in-stock status, and sorting."
+					}
+				},
+				{
+					"name": "Get Product Details",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/products/:identifier",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "products", ":identifier"],
+							"variable": [
+								{ "key": "identifier", "value": "PRODUCT_ID_OR_SLUG", "description": "Product ID or slug" }
+							]
+						},
+						"description": "Get full product details by ID or slug, including variants and images."
+					}
+				}
+			]
+		},
+		{
+			"name": "Cart",
+			"item": [
+				{
+					"name": "Get Cart",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{authToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/cart",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "cart"]
+						},
+						"description": "Get the current user's cart with items, variants, and totals."
+					}
+				},
+				{
+					"name": "Add Item to Cart",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{authToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"variantId\": \"VARIANT_ID_HERE\",\n  \"quantity\": 1\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/cart/items",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "cart", "items"]
+						},
+						"description": "Add a product variant to the cart. Quantity defaults to 1 if not specified."
+					}
+				},
+				{
+					"name": "Update Cart Item Quantity",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{authToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"quantity\": 2\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/cart/items/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "cart", "items", ":id"],
+							"variable": [
+								{ "key": "id", "value": "CART_ITEM_ID_HERE", "description": "Cart Item ID" }
+							]
+						},
+						"description": "Update the quantity of a specific cart item. Setting quantity to 0 removes the item."
+					}
+				},
+				{
+					"name": "Remove Item from Cart",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{authToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/cart/items/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "cart", "items", ":id"],
+							"variable": [
+								{ "key": "id", "value": "CART_ITEM_ID_HERE", "description": "Cart Item ID" }
+							]
+						},
+						"description": "Remove a specific item from the cart."
+					}
+				},
+				{
+					"name": "Clear Cart",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{authToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/cart",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "cart"]
+						},
+						"description": "Remove all items from the cart."
+					}
+				}
+			]
+		},
+		{
+			"name": "Orders",
+			"item": [
+				{
+					"name": "Preview Checkout",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{authToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"items\": [],\n  \"couponCode\": \"\",\n  \"useWallet\": false\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/orders/preview",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "orders", "preview"]
+						},
+						"description": "Preview checkout calculation — returns item totals, applicable discounts, shipping cost, wallet deduction, and final payable amount. Send empty items array to use cart contents."
+					}
+				},
+				{
+					"name": "Create Order (Checkout)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{authToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"paymentMethod\": \"CASHFREE\",\n  \"useWallet\": false,\n  \"couponCode\": \"\",\n  \"shippingAddress\": {\n    \"fullName\": \"John Doe\",\n    \"phone\": \"9876543210\",\n    \"addressLine1\": \"123 Main Street\",\n    \"addressLine2\": \"Apt 4B\",\n    \"city\": \"Mumbai\",\n    \"state\": \"Maharashtra\",\n    \"postalCode\": \"400001\",\n    \"country\": \"India\"\n  }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/orders/checkout",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "orders", "checkout"]
+						},
+						"description": "Place an order. paymentMethod can be 'CASHFREE' (online) or 'COD'. For Cashfree, a payment session URL is returned. useWallet: true applies wallet balance."
+					}
+				},
+				{
+					"name": "Get My Orders",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{authToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/orders",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "orders"]
+						},
+						"description": "List all orders for the authenticated user."
+					}
+				},
+				{
+					"name": "Get Order Details",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{authToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/orders/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "orders", ":id"],
+							"variable": [
+								{ "key": "id", "value": "ORDER_ID_HERE", "description": "Order ID" }
+							]
+						},
+						"description": "Get detailed information for a specific order."
+					}
+				},
+				{
+					"name": "Cancel Order",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{authToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"reason\": \"Changed my mind\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/orders/:id/cancel",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "orders", ":id", "cancel"],
+							"variable": [
+								{ "key": "id", "value": "ORDER_ID_HERE", "description": "Order ID" }
+							]
+						},
+						"description": "Cancel an order (allowed only before shipping). Payments and wallet amounts are refunded automatically."
+					}
+				}
+			]
+		},
+		{
+			"name": "Wallet",
+			"item": [
+				{
+					"name": "Get Wallet Balance",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{authToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/wallet",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "wallet"]
+						},
+						"description": "Get the current wallet balance for the authenticated user."
+					}
+				},
+				{
+					"name": "Get Wallet Transactions",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{authToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/wallet/transactions",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "wallet", "transactions"]
+						},
+						"description": "Get the wallet transaction ledger (credits, debits, referrals, refunds, etc.)."
+					}
+				}
+			]
+		},
+		{
+			"name": "Referrals",
+			"item": [
+				{
+					"name": "Get My Referral Info",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{authToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/referrals",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "referrals"]
+						},
+						"description": "Get the authenticated user's referral code, total earned, successful/pending referrals, and detailed referral list."
+					}
+				},
+				{
+					"name": "Validate Referral Code",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"referral_code\": \"JOHN1234\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/referrals/validate",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "referrals", "validate"]
+						},
+						"description": "Public endpoint. Validate a referral code before registration. Returns validity status and referrer name."
+					}
+				}
+			]
+		},
+		{
+			"name": "Notifications",
+			"item": [
+				{
+					"name": "Get My Notifications",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{authToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/notifications",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "notifications"]
+						},
+						"description": "Get all notifications for the authenticated user along with unread count."
+					}
+				},
+				{
+					"name": "Mark Notification as Read",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{authToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/notifications/:id/read",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "notifications", ":id", "read"],
+							"variable": [
+								{ "key": "id", "value": "NOTIFICATION_ID_HERE", "description": "Notification ID" }
+							]
+						},
+						"description": "Mark a specific notification as read."
+					}
+				},
+				{
+					"name": "Mark All Notifications as Read",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{authToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/notifications/read-all",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "notifications", "read-all"]
+						},
+						"description": "Mark all notifications for the current user as read."
+					}
+				}
+			]
+		},
+		{
+			"name": "Webhooks",
+			"item": [
+				{
+					"name": "Cashfree Payment Webhook",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "x-webhook-signature", "value": "SIGNATURE_HERE" },
+							{ "key": "x-webhook-timestamp", "value": "TIMESTAMP_HERE" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"PAYMENT_SUCCESS_WEBHOOK\",\n  \"data\": {\n    \"order\": {\n      \"order_id\": \"ORDER_ID_HERE\",\n      \"order_amount\": 999.00,\n      \"order_currency\": \"INR\"\n    },\n    \"payment\": {\n      \"cf_payment_id\": \"CF_PAYMENT_ID\",\n      \"payment_status\": \"SUCCESS\",\n      \"payment_amount\": 999.00,\n      \"payment_method\": {\n        \"upi\": {\n          \"upi_id\": \"user@upi\"\n        }\n      }\n    }\n  }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/webhooks/cashfree",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "webhooks", "cashfree"]
+						},
+						"description": "Cashfree payment webhook endpoint. Protected by signature verification middleware. Normally called by Cashfree servers, not manually."
+					}
+				}
+			]
+		},
+		{
+			"name": "Admin",
+			"description": "All admin endpoints require an admin-role JWT. Set the `adminToken` variable after logging in as an admin user.",
+			"item": [
+				{
+					"name": "Authentication",
+					"item": [
+						{
+							"name": "Admin Login",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"var json = pm.response.json();",
+											"if (json.data && json.data.token) {",
+											"    pm.collectionVariables.set('adminToken', json.data.token);",
+											"    pm.collectionVariables.set('authToken', json.data.token);",
+											"}"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{ "key": "Content-Type", "value": "application/json" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"identifier\": \"admin@ecommerce.com\",\n  \"password\": \"Admin@12345\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/v1/auth/login",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "v1", "auth", "login"]
+								},
+								"description": "Authenticate as an Administrator. Automatically saves the admin JWT token into both adminToken and authToken collection variables for subsequent Admin API requests."
+							}
+						}
+					]
+				},
+				{
+					"name": "Dashboard & Customers",
+					"item": [
+						{
+							"name": "Get Dashboard Metrics",
+							"request": {
+								"method": "GET",
+								"header": [
+									{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
+								],
+								"url": {
+									"raw": "{{baseUrl}}/api/v1/admin/metrics",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "v1", "admin", "metrics"]
+								},
+								"description": "Get admin dashboard KPIs: today's sales, total orders, today's orders, total customers, active products, low stock count, orders by status, and recent orders."
+							}
+						},
+						{
+							"name": "Get Customer Details",
+							"request": {
+								"method": "GET",
+								"header": [
+									{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
+								],
+								"url": {
+									"raw": "{{baseUrl}}/api/v1/admin/customers/:id",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "v1", "admin", "customers", ":id"],
+									"variable": [
+										{ "key": "id", "value": "USER_ID_HERE", "description": "Customer User ID" }
+									]
+								},
+								"description": "Get detailed customer profile: name, contact, wallet balance, order count, total spent, successful referrals, and last order info."
+							}
+						}
+					]
+				},
+				{
+					"name": "Catalog Management",
+					"item": [
+						{
+							"name": "Create Category (Level 1 Parent - Men/Women/Kids)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{ "key": "Content-Type", "value": "application/json" },
+									{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"Men\",\n  \"slug\": \"men\",\n  \"description\": \"Men's fashion, apparel and accessories\",\n  \"image\": \"https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?auto=format&fit=crop&w=800&q=80\",\n  \"level\": 1,\n  \"sortOrder\": 1,\n  \"parentId\": null,\n  \"isActive\": true\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/v1/admin/categories",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "v1", "admin", "categories"]
+								},
+								"description": "Create a top-level parent category (e.g. Men, Women, Kids). parentId must be null, level must be 1."
+							}
+						},
+						{
+							"name": "Create Subcategory (Level 2 - e.g. T-Shirts under Men)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{ "key": "Content-Type", "value": "application/json" },
+									{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"T-Shirts\",\n  \"slug\": \"men-tshirts\",\n  \"description\": \"Men's casual, graphic and polo t-shirts\",\n  \"image\": \"https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=800&q=80\",\n  \"level\": 2,\n  \"sortOrder\": 1,\n  \"parentId\": \"PARENT_CATEGORY_ID_HERE\",\n  \"isActive\": true\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/v1/admin/categories",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "v1", "admin", "categories"]
+								},
+								"description": "Create a Level 2 subcategory under a Level 1 parent. Replace PARENT_CATEGORY_ID_HERE with the Level 1 category UUID."
+							}
+						},
+						{
+							"name": "Create Sub-subcategory (Level 3 - e.g. Oversized T-Shirts)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{ "key": "Content-Type", "value": "application/json" },
+									{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"Oversized T-Shirts\",\n  \"slug\": \"men-oversized-tshirts\",\n  \"description\": \"Drop-shoulder oversized relaxed fits\",\n  \"image\": \"https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?auto=format&fit=crop&w=800&q=80\",\n  \"level\": 3,\n  \"sortOrder\": 1,\n  \"parentId\": \"SUBCATEGORY_ID_HERE\",\n  \"isActive\": true\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/v1/admin/categories",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "v1", "admin", "categories"]
+								},
+								"description": "Create a specialized Level 3 sub-subcategory under a Level 2 subcategory. Replace SUBCATEGORY_ID_HERE with the Level 2 category UUID."
+							}
+						},
+						{
+							"name": "Update Category (by ID)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{ "key": "Content-Type", "value": "application/json" },
+									{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"id\": \"CATEGORY_ID_HERE\",\n  \"name\": \"Men's Premium T-Shirts\",\n  \"slug\": \"men-tshirts\",\n  \"description\": \"Updated description and attributes\",\n  \"image\": \"https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=800&q=80\",\n  \"level\": 2,\n  \"sortOrder\": 1,\n  \"parentId\": \"PARENT_CATEGORY_ID_HERE\",\n  \"isActive\": true\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/v1/admin/categories",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "v1", "admin", "categories"]
+								},
+								"description": "Update an existing category. Passing `id` performs an update rather than create. Supports Google Drive or direct image URLs."
+							}
+						},
+						{
+							"name": "Toggle Category Status (Active/Inactive)",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{ "key": "Content-Type", "value": "application/json" },
+									{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"isActive\": false,\n  \"cascade\": true\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/v1/admin/categories/:id/status",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "v1", "admin", "categories", ":id", "status"],
+									"variable": [
+										{ "key": "id", "value": "CATEGORY_ID_HERE", "description": "Category ID" }
+									]
+								},
+								"description": "Activate or deactivate a category. Optionally pass `\"cascade\": true` to recursively activate/deactivate all descendant subcategories."
+							}
+						},
+						{
+							"name": "Delete Category",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
+								],
+								"url": {
+									"raw": "{{baseUrl}}/api/v1/admin/categories/:id",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "v1", "admin", "categories", ":id"],
+									"variable": [
+										{ "key": "id", "value": "CATEGORY_ID_HERE", "description": "Category ID" }
+									]
+								},
+								"description": "Permanently delete a category. Fails if any products are assigned to it — deactivate instead."
+							}
+						},
+						{
+							"name": "Create / Update Product with Variants",
+							"request": {
+								"method": "POST",
+								"header": [
+									{ "key": "Content-Type", "value": "application/json" },
+									{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"id\": \"\",\n  \"name\": \"Classic Cotton T-Shirt\",\n  \"slug\": \"classic-cotton-tshirt\",\n  \"description\": \"Premium 100% cotton t-shirt with a comfortable fit\",\n  \"brand\": \"StyleCraft\",\n  \"fabric\": \"Cotton\",\n  \"fit\": \"Regular\",\n  \"sleeve\": \"Half Sleeve\",\n  \"pattern\": \"Solid\",\n  \"categoryId\": \"CATEGORY_ID_HERE\",\n  \"basePrice\": 999,\n  \"sellingPrice\": 699,\n  \"buyingPrice\": 350,\n  \"isFeatured\": false,\n  \"isActive\": true,\n  \"images\": [\n    \"https://drive.google.com/file/d/FILE_ID_1/view\",\n    \"https://drive.google.com/file/d/FILE_ID_2/view\"\n  ],\n  \"variants\": [\n    {\n      \"sku\": \"CCT-BLK-S\",\n      \"size\": \"S\",\n      \"color\": \"Black\",\n      \"colorHex\": \"#000000\",\n      \"price\": 0,\n      \"stockQuantity\": 50,\n      \"isActive\": true\n    },\n    {\n      \"sku\": \"CCT-BLK-M\",\n      \"size\": \"M\",\n      \"color\": \"Black\",\n      \"colorHex\": \"#000000\",\n      \"price\": 0,\n      \"stockQuantity\": 75,\n      \"isActive\": true\n    },\n    {\n      \"sku\": \"CCT-WHT-L\",\n      \"size\": \"L\",\n      \"color\": \"White\",\n      \"colorHex\": \"#FFFFFF\",\n      \"price\": 0,\n      \"stockQuantity\": 60,\n      \"isActive\": true\n    }\n  ]\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/v1/admin/products",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "v1", "admin", "products"]
+								},
+								"description": "Create a new product or update an existing one (upsert). Pass an existing `id` to update. Includes size/color variants with SKU, stock, and pricing. Images from Google Drive are auto-converted."
+							}
+						},
+						{
+							"name": "Update Variant Stock",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{ "key": "Content-Type", "value": "application/json" },
+									{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"stockQuantity\": 100\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/v1/admin/variants/:variantId/stock",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "v1", "admin", "variants", ":variantId", "stock"],
+									"variable": [
+										{ "key": "variantId", "value": "VARIANT_ID_HERE", "description": "Product Variant ID" }
+									]
+								},
+								"description": "Directly update the stock quantity for a specific product variant."
+							}
+						}
+					]
+				},
+				{
+					"name": "Order Fulfillment",
+					"item": [
+						{
+							"name": "Get All Orders (Admin)",
+							"request": {
+								"method": "GET",
+								"header": [
+									{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
+								],
+								"url": {
+									"raw": "{{baseUrl}}/api/v1/admin/orders?status=&paymentStatus=&page=1&limit=20",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "v1", "admin", "orders"],
+									"query": [
+										{ "key": "status", "value": "", "description": "Filter: PENDING_PAYMENT, CONFIRMED, SHIPPED, DELIVERED, CANCELLED" },
+										{ "key": "paymentStatus", "value": "", "description": "Filter: PENDING, SUCCESS, FAILED, REFUNDED" },
+										{ "key": "page", "value": "1", "description": "Page number" },
+										{ "key": "limit", "value": "20", "description": "Items per page" }
+									]
+								},
+								"description": "List all orders with optional status and payment status filters. Includes pagination, user info, order items, and payments."
+							}
+						},
+						{
+							"name": "Get Order Details (Admin)",
+							"request": {
+								"method": "GET",
+								"header": [
+									{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
+								],
+								"url": {
+									"raw": "{{baseUrl}}/api/v1/admin/orders/:id",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "v1", "admin", "orders", ":id"],
+									"variable": [
+										{ "key": "id", "value": "ORDER_ID_HERE", "description": "Order ID" }
+									]
+								},
+								"description": "Get full order details for admin including user, items, payments, refunds, and status history."
+							}
+						},
+						{
+							"name": "Update Order Status",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{ "key": "Content-Type", "value": "application/json" },
+									{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"status\": \"CONFIRMED\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/v1/admin/orders/:id/status",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "v1", "admin", "orders", ":id", "status"],
+									"variable": [
+										{ "key": "id", "value": "ORDER_ID_HERE", "description": "Order ID" }
+									]
+								},
+								"description": "Update order status. Valid values: PENDING_PAYMENT, CONFIRMED, SHIPPED, DELIVERED, CANCELLED. Setting to DELIVERED auto-triggers referral rewards and marks COD as paid. Sends notifications to customer."
+							}
+						}
+					]
+				},
+				{
+					"name": "Payments & Refunds",
+					"item": [
+						{
+							"name": "Trigger Cashfree Refund",
+							"request": {
+								"method": "POST",
+								"header": [
+									{ "key": "Content-Type", "value": "application/json" },
+									{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"orderId\": \"ORDER_ID_HERE\",\n  \"amount\": 699,\n  \"reason\": \"Customer requested refund\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/v1/admin/refunds",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "v1", "admin", "refunds"]
+								},
+								"description": "Initiate a Cashfree refund for a paid order. Amount is optional — defaults to full payment amount. Order must have paymentStatus = SUCCESS."
+							}
+						}
+					]
+				},
+				{
+					"name": "Wallet Management",
+					"item": [
+						{
+							"name": "Adjust Customer Wallet",
+							"request": {
+								"method": "POST",
+								"header": [
+									{ "key": "Content-Type", "value": "application/json" },
+									{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"userId\": \"USER_ID_HERE\",\n  \"amount\": 100,\n  \"type\": \"CREDIT\",\n  \"description\": \"Promotional bonus for festive season\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/v1/admin/wallet/adjust",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "v1", "admin", "wallet", "adjust"]
+								},
+								"description": "Manually credit or debit a customer's wallet. Type must be CREDIT or DEBIT. All fields are required."
+							}
+						}
+					]
+				},
+				{
+					"name": "System Settings",
+					"item": [
+						{
+							"name": "Get All System Settings",
+							"request": {
+								"method": "GET",
+								"header": [
+									{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
+								],
+								"url": {
+									"raw": "{{baseUrl}}/api/v1/admin/settings",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "v1", "admin", "settings"]
+								},
+								"description": "Get all dynamic system settings (first order offer, referral program, shipping config, COD settings, etc.)."
+							}
+						},
+						{
+							"name": "Update System Setting",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{ "key": "Content-Type", "value": "application/json" },
+									{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"value\": {\n    \"enabled\": true,\n    \"discountPercent\": 15,\n    \"maxDiscount\": 200\n  },\n  \"description\": \"First order discount configuration\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/v1/admin/settings/:key",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "v1", "admin", "settings", ":key"],
+									"variable": [
+										{ "key": "key", "value": "first_order_offer", "description": "Setting key (e.g. first_order_offer, referral_program, shipping, payments)" }
+									]
+								},
+								"description": "Update a specific system setting by key. Changes take effect immediately. Common keys: first_order_offer, referral_program, shipping, payments."
+							}
+						}
+					]
+				},
+				{
+					"name": "Offer Management",
+					"item": [
+						{
+							"name": "Get All Offers",
+							"request": {
+								"method": "GET",
+								"header": [
+									{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
+								],
+								"url": {
+									"raw": "{{baseUrl}}/api/v1/admin/offers",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "v1", "admin", "offers"]
+								},
+								"description": "List all offers/coupons sorted by creation date (newest first)."
+							}
+						},
+						{
+							"name": "Create / Update Offer",
+							"request": {
+								"method": "POST",
+								"header": [
+									{ "key": "Content-Type", "value": "application/json" },
+									{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"id\": \"\",\n  \"name\": \"WELCOME50\",\n  \"type\": \"PERCENTAGE\",\n  \"value\": 50,\n  \"minimumOrderAmount\": 500,\n  \"firstOrderOnly\": true,\n  \"perUserLimit\": 1,\n  \"usageLimit\": 1000,\n  \"startAt\": \"2026-01-01T00:00:00.000Z\",\n  \"endAt\": \"2026-12-31T23:59:59.000Z\",\n  \"isActive\": true\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/v1/admin/offers",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "v1", "admin", "offers"]
+								},
+								"description": "Create or update an offer/coupon (upsert). Pass existing `id` to update. Type: FIXED or PERCENTAGE. Supports first-order-only, per-user limits, global usage limits, and date ranges."
+							}
+						}
+					]
+				}
+			]
+		}
+	]
+}

@@ -1,0 +1,60 @@
+{
+  "name": "ecommerce-api",
+  "version": "1.0.0",
+  "description": "Production E-Commerce Backend REST API with PostgreSQL, Cashfree, Cloudinary, Variants, Offers & Wallet",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "tsx watch src/server.ts",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio",
+    "prisma:seed": "tsx prisma/seed.ts",
+    "seed": "tsx prisma/seed.ts",
+    "seed:settings": "tsx prisma/seeders/settings.seeder.ts",
+    "seed:users": "tsx prisma/seeders/users.seeder.ts",
+    "seed:categories": "tsx prisma/seeders/categories.seeder.ts",
+    "seed:offers": "tsx prisma/seeders/offers.seeder.ts",
+    "seed:coupons": "tsx prisma/seeders/coupons.seeder.ts"
+  },
+  "keywords": [
+    "ecommerce",
+    "cashfree",
+    "postgresql",
+    "prisma",
+    "express",
+    "wallet",
+    "referral"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "bcryptjs": "^2.4.3",
+    "cashfree-pg": "^4.3.0",
+    "cloudinary": "^2.5.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^8.7.0",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "node-cron": "^4.6.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/express-rate-limit": "^5.1.3",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/morgan": "^1.9.9",
+    "@types/node": "^22.10.2",
+    "@types/node-cron": "^3.0.11",
+    "prisma": "^5.22.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
