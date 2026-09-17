@@ -65,6 +65,20 @@ export class OrderController {
   }
 
   /**
+   * Verify Cashfree payment status explicitly
+   */
+  static async verifyPayment(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const { id } = req.params;
+      const order = await OrderService.verifyOrderPayment(userId, id);
+      ApiResponse.success(res, order, `Order payment status: ${order.paymentStatus}`);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Customer-initiated order cancellation (prior to shipping)
    */
   static async cancelOrder(req: Request, res: Response, next: NextFunction): Promise<void> {

@@ -185,7 +185,105 @@ export class OrderService {
     });
   }
 
+  static async verifyAndSyncCashfreePayment(orderId: string) {
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: { payments: true }
+    });
+
+    if (!order || order.paymentMethod !== PaymentMethod.CASHFREE) {
+      return order;
+    }
+
+    if (order.paymentStatus === PaymentStatus.SUCCESS && order.status !== OrderStatus.PENDING_PAYMENT) {
+      return order;
+    }
+
+    try {
+      const payments = await CashfreeService.getOrderPayments(order.id);
+      if (Array.isArray(payments) && payments.length > 0) {
+        const successPayment = payments.find((p: any) => p.payment_status === 'SUCCESS');
+        if (successPayment) {
+          await prisma.$transaction(async (tx) => {
+            await tx.order.update({
+              where: { id: order.id },
+              data: {
+                status: OrderStatus.CONFIRMED,
+                paymentStatus: PaymentStatus.SUCCESS,
+              },
+            });
+
+            await tx.orderStatusHistory.create({
+              data: {
+                orderId: order.id,
+                oldStatus: order.status,
+                newStatus: OrderStatus.CONFIRMED,
+                changedBy: 'SYSTEM',
+                reason: 'Cashfree payment verified via API sync',
+              },
+            });
+
+            const paymentRecord = order.payments[0];
+            if (paymentRecord) {
+              await tx.payment.update({
+                where: { id: paymentRecord.id },
+                data: {
+                  status: PaymentStatus.SUCCESS,
+                  providerPaymentId: successPayment.cf_payment_id ? successPayment.cf_payment_id.toString() : null,
+                  method: successPayment.payment_group || 'CASHFREE',
+                },
+              });
+            }
+
+            if (order.appliedOfferId) {
+              await tx.offerUsage.create({ data: { offerId: order.appliedOfferId, userId: order.userId, orderId: order.id } });
+              await tx.offer.update({ where: { id: order.appliedOfferId }, data: { timesUsed: { increment: 1 } } });
+            }
+
+            if (order.appliedCouponId) {
+              await tx.couponUsage.create({ data: { couponId: order.appliedCouponId, userId: order.userId, orderId: order.id } });
+              await tx.coupon.update({ where: { id: order.appliedCouponId }, data: { timesUsed: { increment: 1 } } });
+            }
+          });
+        }
+      }
+    } catch (e) {
+      console.warn(`[SYNC CASHFREE PAYMENT ERROR]:`, e);
+    }
+
+    return prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        orderItems: true,
+        payments: {
+          select: { status: true, amount: true, method: true },
+        },
+        refunds: true,
+        statusHistory: { orderBy: { createdAt: 'asc' } },
+      },
+    });
+  }
+
+  static async verifyOrderPayment(userId: string, id: string) {
+    const existing = await prisma.order.findFirst({
+      where: { id, userId },
+    });
+    if (!existing) throw new AppError('Order not found', 404);
+
+    const synced = await this.verifyAndSyncCashfreePayment(id);
+    return synced!;
+  }
+
   static async getOrderDetails(userId: string, id: string) {
+    const existing = await prisma.order.findFirst({
+      where: { id, userId },
+    });
+    if (!existing) throw new AppError('Order not found', 404);
+
+    if (existing.status === OrderStatus.PENDING_PAYMENT && existing.paymentMethod === PaymentMethod.CASHFREE) {
+      await this.verifyAndSyncCashfreePayment(id);
+    }
+
     const order = await prisma.order.findFirst({
       where: { id, userId },
       include: {
@@ -197,7 +295,6 @@ export class OrderService {
         statusHistory: { orderBy: { createdAt: 'asc' } },
       },
     });
-    if (!order) throw new AppError('Order not found', 404);
     return order;
   }
 

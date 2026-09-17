@@ -55,6 +55,7 @@ desktop.ini
 temp/
 tmp/
 *.tmp
+test-payment.html
 
 # AI / Assistant Scratch Artifacts
 .agents/

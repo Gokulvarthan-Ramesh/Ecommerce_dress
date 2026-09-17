@@ -472,7 +472,25 @@
 								{ "key": "id", "value": "ORDER_ID_HERE", "description": "Order ID" }
 							]
 						},
-						"description": "Get detailed information for a specific order."
+						"description": "Get detailed information for a specific order. Automatically verifies and synchronizes Cashfree payment status if pending."
+					}
+				},
+				{
+					"name": "Verify / Sync Order Payment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{authToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/orders/:id/verify",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "orders", ":id", "verify"],
+							"variable": [
+								{ "key": "id", "value": "7305c02b-56af-41af-87a1-1f145be5e1b8", "description": "Order ID to verify" }
+							]
+						},
+						"description": "Explicitly verify and synchronize payment status directly with Cashfree's API. Updates order to CONFIRMED and paymentStatus to SUCCESS upon verification."
 					}
 				},
 				{
