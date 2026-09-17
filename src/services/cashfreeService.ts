@@ -18,9 +18,9 @@ export class CashfreeService {
   private static getHeaders() {
     return {
       'Content-Type': 'application/json',
-      'x-client-id': ENV.CASHFREE.APP_ID,
-      'x-client-secret': ENV.CASHFREE.SECRET_KEY,
-      'x-api-version': ENV.CASHFREE.API_VERSION,
+      'x-client-id': (process.env.CASHFREE_APP_ID || ENV.CASHFREE.APP_ID || '').trim(),
+      'x-client-secret': (process.env.CASHFREE_SECRET_KEY || ENV.CASHFREE.SECRET_KEY || '').trim(),
+      'x-api-version': (process.env.CASHFREE_API_VERSION || ENV.CASHFREE.API_VERSION || '2023-08-01').trim(),
     };
   }
 
