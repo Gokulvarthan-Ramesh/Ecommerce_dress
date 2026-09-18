@@ -173,4 +173,86 @@ export class ReviewController {
       next(error);
     }
   }
+
+  /**
+   * Admin: Get all reviews with filters
+   */
+  static async adminGetReviews(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { page = '1', limit = '10', shopId, productId } = req.query;
+      const pageNum = parseInt(page as string, 10) || 1;
+      const limitNum = parseInt(limit as string, 10) || 10;
+      const skip = (pageNum - 1) * limitNum;
+
+      const where = {
+        ...(shopId ? { shopId: String(shopId) } : {}),
+        ...(productId ? { productId: String(productId) } : {})
+      };
+
+      const [reviews, total] = await Promise.all([
+        prisma.review.findMany({
+          where,
+          include: {
+            user: { select: { id: true, name: true, email: true } },
+            product: { select: { id: true, name: true, slug: true } },
+            shop: { select: { id: true, name: true } }
+          },
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take: limitNum,
+        }),
+        prisma.review.count({ where })
+      ]);
+
+      ApiResponse.success(res, {
+        reviews,
+        pagination: {
+          total,
+          page: pageNum,
+          limit: limitNum,
+          totalPages: Math.ceil(total / limitNum)
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Admin: Delete a review (Moderation)
+   */
+  static async adminDeleteReview(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+
+      const review = await prisma.review.findUnique({ where: { id } });
+      if (!review) throw new AppError('Review not found', 404);
+
+      await prisma.review.delete({ where: { id } });
+
+      // Recalculate Shop Rating if shopId exists
+      if (review.shopId) {
+        const shopReviews = await prisma.review.findMany({
+          where: { shopId: review.shopId },
+          select: { rating: true },
+        });
+
+        const reviewCount = shopReviews.length;
+        const totalRating = shopReviews.reduce((sum, r) => sum + r.rating, 0);
+        const newRating = reviewCount > 0 ? (totalRating / reviewCount).toFixed(2) : 5.0;
+
+        await prisma.shop.update({
+          where: { id: review.shopId },
+          data: {
+            rating: Number(newRating),
+            reviewCount,
+          },
+        });
+      }
+
+      ApiResponse.success(res, null, 'Review deleted successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
 }

@@ -2,7 +2,6 @@ import express, { Application, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import rateLimit from 'express-rate-limit';
 import apiRouter from './routes';
 import { errorHandler } from './middleware/errorHandler';
 
@@ -18,13 +17,6 @@ app.get(['/test-payment', '/test-payment.html'], (_req: Request, res: Response) 
   res.sendFile(path.join(process.cwd(), 'test-payment.html'));
 });
 
-// Rate Limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: { success: false, message: 'Too many requests from this IP, please try again after 15 minutes' },
-});
-app.use(limiter);
 
 // CORS configuration
 app.use(

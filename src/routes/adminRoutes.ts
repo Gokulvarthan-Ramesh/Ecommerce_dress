@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { AdminController } from '../controllers/adminController';
 import { ShopController } from '../controllers/shopController';
+import { ReviewController } from '../controllers/reviewController';
 import { authenticateToken } from '../middleware/auth';
 import { requireAdmin } from '../middleware/adminGuard';
 
@@ -57,6 +58,7 @@ router.delete('/banners/:id', AdminController.deleteBanner);
 router.get('/orders', AdminController.getOrders);
 router.get('/orders/:id', AdminController.getOrderDetails);
 router.patch('/orders/:id/status', AdminController.updateOrderStatus);
+router.patch('/sub-orders/:subOrderId/status', AdminController.updateSubOrderStatus);
 router.delete('/orders/:id', AdminController.deleteOrder);
 
 // 8. Return Request Management
@@ -105,6 +107,10 @@ router.get('/shops/:id', ShopController.adminGetShopById);
 router.put('/shops/:id', ShopController.adminUpdateShop);
 router.get('/payouts', ShopController.adminListPayouts);
 router.put('/payouts/:id', ShopController.adminProcessPayout);
+
+// 17. Reviews & Ratings Moderation
+router.get('/reviews', ReviewController.adminGetReviews);
+router.delete('/reviews/:id', ReviewController.adminDeleteReview);
 
 export default router;
 

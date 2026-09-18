@@ -102,6 +102,7 @@ model User {
 
   reviews       Review[]
   wishlist      Wishlist?
+  adminAccess   AdminAccess[]
 
   @@index([phone])
   @@index([email])
@@ -893,5 +894,39 @@ model WishlistItem {
 
   @@unique([wishlistId, productId])
   @@map("wishlist_items")
+}
+
+// ==========================================
+// RBAC: Granular Admin Access
+// ==========================================
+model FeatureMaster {
+  id          String        @id @default(uuid())
+  code        String        @unique // e.g., "ORDERS", "PRODUCTS"
+  name        String
+  description String?
+  
+  accessLogs  AdminAccess[]
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@map("feature_masters")
+}
+
+model AdminAccess {
+  id          String        @id @default(uuid())
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  featureCode String
+  feature     FeatureMaster @relation(fields: [featureCode], references: [code], onDelete: Cascade)
+  
+  canRead     Boolean       @default(true)
+  canWrite    Boolean       @default(false)
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@unique([userId, featureCode])
+  @@map("admin_access")
 }
 
