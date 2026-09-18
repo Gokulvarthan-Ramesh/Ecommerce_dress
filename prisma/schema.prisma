@@ -76,6 +76,8 @@ model User {
   email         String?   @unique
   phone         String    @unique
   passwordHash  String?
+  gender        String?
+  dob           DateTime?
   role          Role      @default(CUSTOMER)
   referralCode  String    @unique
   referredById  String?
@@ -133,8 +135,45 @@ model Address {
 }
 
 // ==========================================
-// 2. CATALOG
+// 2. CATALOG & ATTRIBUTES
 // ==========================================
+model Attribute {
+  id          String   @id @default(uuid())
+  name        String   // e.g., "Size", "Color", "RAM"
+  description String?
+  type        String   @default("SELECT") // SELECT, MULTI_SELECT, TEXT, NUMBER, BOOLEAN
+  isRequired  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  options     AttributeOption[]
+  categories  CategoryAttribute[]
+
+  @@map("attributes")
+}
+
+model AttributeOption {
+  id          String    @id @default(uuid())
+  attributeId String
+  attribute   Attribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+  value       String    // e.g., "S", "M", "L", "8GB"
+  sortOrder   Int       @default(0)
+
+  @@index([attributeId])
+  @@map("attribute_options")
+}
+
+model CategoryAttribute {
+  categoryId  String
+  category    Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  attributeId String
+  attribute   Attribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+
+  @@id([categoryId, attributeId])
+  @@index([categoryId])
+  @@index([attributeId])
+  @@map("category_attributes")
+}
 model Category {
   id          String     @id @default(uuid())
   parentId    String?
@@ -145,15 +184,35 @@ model Category {
   description String?
   level       Int        @default(1)
   imageUrl    String?
+  bannerUrl   String?
+  seoTitle    String?
+  seoDescription String?
+  attributes  Json?      // Defines schema (e.g. RAM, Processor)
+  filters     Json?      // Defines sidebar filters
+  commissionRate Decimal? @db.Decimal(5, 2)
+  taxRate     Decimal?   @db.Decimal(5, 2)
+  deliveryRules Json?    // Specific delivery restrictions/fees
   sortOrder   Int        @default(0)
   isActive    Boolean    @default(true)
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
   products    Product[]
+  categoryAttributes CategoryAttribute[]
 
   @@index([slug])
   @@map("categories")
+}
+enum ProductType {
+  SIMPLE
+  VARIABLE
+  BUNDLE
+  COMBO
+  DIGITAL
+  SUBSCRIPTION
+  SERVICE
+  FOOD
+  GROCERY
 }
 
 model Product {
@@ -165,11 +224,23 @@ model Product {
   description  String?
   brand        String?
   
-  // V1 Product Attributes
+  productType  ProductType      @default(SIMPLE)
+  sku          String?          @unique
+  barcode      String?          @unique
+  videoUrl     String?
+  minStock     Int              @default(0)
+  maxOrderQuantity Int?
+  taxRate      Decimal?         @db.Decimal(5, 2)
+  
+  // V1 Product Attributes (Legacy)
   fabric       String?
   fit          String?
   sleeve       String?
   pattern      String?
+
+  // Generic EAV Attributes
+  attributes   Json?
+
   
   basePrice    Decimal          @db.Decimal(10, 2) // Often used as MSRP/Original price
   sellingPrice Decimal          @db.Decimal(10, 2) // The price it's actually sold for
@@ -214,10 +285,21 @@ model ProductVariant {
   productId       String
   product         Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
   sku             String      @unique
+  barcode         String?     @unique
   size            String      // e.g., XS, S, M, L, XL
   color           String      // e.g., Navy Blue, Jet Black
   colorHex        String?     // e.g., #000080
+  
+  // Generic EAV Attributes
+  attributes      Json?       // e.g., {"RAM": "8GB", "Storage": "256GB"}
   price           Decimal     @default(0.00) @db.Decimal(10, 2)
+  
+  // Specific Variant Fields
+  discount        Decimal?    @db.Decimal(10, 2)
+  weight          Decimal?    @db.Decimal(10, 2)
+  dimensions      String?
+  imageUrl        String?
+
   stockQuantity   Int         @default(0) // Fast cache of current stock
   isActive        Boolean     @default(true)
   createdAt       DateTime    @default(now())

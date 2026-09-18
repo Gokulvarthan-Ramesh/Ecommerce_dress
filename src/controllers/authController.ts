@@ -17,9 +17,9 @@ export class AuthController {
 
   static async register(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { phone, whatsappNumber, otp, name, email, referralCode } = req.body;
+      const { phone, whatsappNumber, otp, name, email, referralCode, gender, dob } = req.body;
       const targetPhone = (whatsappNumber || phone || '').toString();
-      const result = await AuthService.register(targetPhone, otp, name, email, referralCode);
+      const result = await AuthService.register(targetPhone, otp, name, email, referralCode, gender, dob);
       ApiResponse.created(res, result.data, result.message);
     } catch (error) {
       next(error);
@@ -55,8 +55,8 @@ export class AuthController {
   static async updateProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = req.user!.id;
-      const { name, email } = req.body;
-      const result = await AuthService.updateProfile(userId, { name, email });
+      const { name, email, gender, dob } = req.body;
+      const result = await AuthService.updateProfile(userId, { name, email, gender, dob });
       ApiResponse.success(res, result, 'Profile updated successfully');
     } catch (error) {
       next(error);

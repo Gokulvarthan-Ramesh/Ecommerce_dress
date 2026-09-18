@@ -41,7 +41,7 @@ export class AuthService {
     };
   }
 
-  static async register(targetPhone: string, otp: string, name: string, email?: string, referralCode?: string) {
+  static async register(targetPhone: string, otp: string, name: string, email?: string, referralCode?: string, gender?: string, dob?: string) {
     const cleanPhone = cleanIndianPhoneNumber(targetPhone);
 
     // 1. Validate phone and otp
@@ -87,11 +87,21 @@ export class AuthService {
 
     const userReferralCode = `${name.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, 'X')}${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
 
+    let parsedDob: Date | undefined = undefined;
+    if (dob) {
+      parsedDob = new Date(dob);
+      if (isNaN(parsedDob.getTime())) {
+        throw new AppError('Invalid Date of Birth format. Please use YYYY-MM-DD.', 400);
+      }
+    }
+
     const createdUser = await UserRepository.create({
       data: {
         name: name.trim(),
         phone: cleanPhone,
         email: email ? email.trim() : undefined,
+        gender: gender || undefined,
+        dob: parsedDob,
         role: Role.CUSTOMER,
         referralCode: userReferralCode,
         referredById: referrerId, // Save referred_by_user_id directly
@@ -206,6 +216,8 @@ export class AuthService {
       name: user.name,
       email: user.email,
       phone: user.phone,
+      gender: user.gender,
+      dob: user.dob,
       role: user.role,
       referralCode: user.referralCode,
       createdAt: user.createdAt,
@@ -214,7 +226,7 @@ export class AuthService {
     };
   }
 
-  static async updateProfile(userId: string, data: { name?: string; email?: string }) {
+  static async updateProfile(userId: string, data: { name?: string; email?: string; gender?: string; dob?: string }) {
     const user = await UserRepository.findUnique({ where: { id: userId } });
     if (!user) {
       throw new AppError('User not found', 404);
@@ -227,12 +239,21 @@ export class AuthService {
       }
     }
 
+    const updateData: any = {};
+    if (data.name !== undefined) updateData.name = data.name.trim();
+    if (data.email !== undefined) updateData.email = data.email.trim();
+    if (data.gender !== undefined) updateData.gender = data.gender;
+    if (data.dob !== undefined) {
+      const parsed = new Date(data.dob);
+      if (isNaN(parsed.getTime())) {
+        throw new AppError('Invalid Date of Birth format. Please use YYYY-MM-DD.', 400);
+      }
+      updateData.dob = parsed;
+    }
+
     const updated = await UserRepository.update({
       where: { id: userId },
-      data: {
-        ...(data.name && { name: data.name.trim() }),
-        ...(data.email && { email: data.email.trim() }),
-      },
+      data: updateData,
     });
 
     return this.getProfile(updated.id);

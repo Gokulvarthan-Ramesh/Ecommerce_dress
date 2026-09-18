@@ -97,7 +97,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"phone\": \"9876543210\",\n  \"otp\": \"123456\",\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"referralCode\": \"\"\n}"
+              "raw": "{\n  \"phone\": \"9876543210\",\n  \"otp\": \"123456\",\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"gender\": \"MALE\",\n  \"dob\": \"1990-01-01\",\n  \"referralCode\": \"\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/auth/register",
