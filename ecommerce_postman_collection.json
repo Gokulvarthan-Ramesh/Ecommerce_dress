@@ -51,6 +51,165 @@
       ]
     },
     {
+      "name": "Authentication (OTP)",
+      "description": "OTP-based passwordless authentication.",
+      "item": [
+        {
+          "name": "Send WhatsApp OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"9876543210\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/whatsapp/send-otp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "whatsapp",
+                "send-otp"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"9876543210\",\n  \"otp\": \"123456\",\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"referralCode\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"9876543210\",\n  \"otp\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Global Attribute Management",
+      "description": "Master Attributes definition (e.g., RAM, Size, Spice Level)",
+      "item": [
+        {
+          "name": "Get All Attributes",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/attributes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "attributes"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Attribute",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"RAM\",\n  \"description\": \"Device Memory\",\n  \"type\": \"SELECT\",\n  \"isRequired\": true,\n  \"options\": [\n    { \"value\": \"8GB\", \"sortOrder\": 1 },\n    { \"value\": \"16GB\", \"sortOrder\": 2 }\n  ],\n  \"categoryIds\": [\n    \"{{categoryId}}\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/attributes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "attributes"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "Config & Banners",
       "description": "Public store configuration and home screen promotional carousels (zero frontend hardcoding).",
       "item": [
@@ -4242,6 +4401,397 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"status\": \"ACTIVE\",\n  \"commissionRate\": 10\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "New Governance & Vendor Endpoints",
+      "description": "Endpoints added for Admin Governance, Vendor Portal, and Admin Dashboard",
+      "item": [
+        {
+          "name": "Admin Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/dashboard?timeframe=all",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "dashboard"],
+              "query": [
+                { "key": "timeframe", "value": "all" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin - Create Shop",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/shops",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "shops"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ownerId\": \"{{customerId}}\",\n  \"name\": \"New Vendor Shop\",\n  \"slug\": \"new-vendor-shop\",\n  \"description\": \"A shop created by admin\",\n  \"commissionRate\": 10\n}"
+            }
+          }
+        },
+        {
+          "name": "Admin - Get Shop Products",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/shops/{{shopId}}/products",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "shops", "{{shopId}}", "products"]
+            }
+          }
+        },
+        {
+          "name": "Admin - Create Shop Product",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/shops/{{shopId}}/products",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "shops", "{{shopId}}", "products"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Admin Mapped Product\",\n  \"slug\": \"admin-mapped-product\",\n  \"categoryId\": \"{{categoryId}}\",\n  \"basePrice\": 100,\n  \"sellingPrice\": 80\n}"
+            }
+          }
+        },
+        {
+          "name": "Vendor - Top Products Analytics",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/analytics/top-products",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "vendor", "analytics", "top-products"]
+            }
+          }
+        },
+        {
+          "name": "Vendor - Inventory Ledger",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/inventory/transactions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "vendor", "inventory", "transactions"]
+            }
+          }
+        },
+        {
+          "name": "Vendor - Bulk Update Inventory",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/inventory/bulk-update",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "vendor", "inventory", "bulk-update"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"updates\": [\n    {\n      \"variantId\": \"{{variantId}}\",\n      \"quantity\": 50,\n      \"type\": \"RESTOCK\"\n    }\n  ]\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin Order & Fulfillment Management",
+      "description": "Endpoints for Super Admin to govern all orders and process refunds",
+      "item": [
+        {
+          "name": "Get All Orders",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/orders?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "orders"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Order Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/orders/{{orderId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "orders", "{{orderId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Order Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/orders/{{orderId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "orders", "{{orderId}}", "status"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"SHIPPED\",\n  \"courierPartner\": \"FedEx\",\n  \"trackingNumber\": \"FDX123456789\",\n  \"estimatedDelivery\": \"2026-09-25T10:00:00Z\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Process Refund",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/orders/{{orderId}}/refund",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "orders", "{{orderId}}", "refund"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 500,\n  \"reason\": \"Customer requested cancellation before shipping\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin Customer & User Management",
+      "description": "Endpoints for Super Admin to govern all users (customers, vendors, admins)",
+      "item": [
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/users?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "users"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get User Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/users/{{customerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "users", "{{customerId}}"]
+            }
+          }
+        },
+        {
+          "name": "Suspend/Activate User",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/users/{{customerId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "users", "{{customerId}}", "status"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": false\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Generic Catalog Governance (EAV)",
+      "description": "Dynamic categories, attributes, and filters for multi-niche commerce",
+      "item": [
+        {
+          "name": "Create Generic Category (Electronics)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "categories"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Laptops\",\n  \"slug\": \"electronics-laptops\",\n  \"description\": \"High performance laptops\",\n  \"seoTitle\": \"Buy Laptops Online - Best Prices\",\n  \"seoDescription\": \"Shop the latest laptops from top brands.\",\n  \"commissionRate\": 8.5,\n  \"taxRate\": 18.0,\n  \"attributes\": [\n    { \"name\": \"RAM\", \"type\": \"dropdown\", \"options\": [\"8GB\", \"16GB\", \"32GB\"] },\n    { \"name\": \"Processor\", \"type\": \"string\" }\n  ],\n  \"filters\": [\"RAM\"]\n}"
+            }
+          }
+        },
+        {
+          "name": "Create Generic Category (Grocery)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "categories"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Fruits\",\n  \"slug\": \"grocery-fruits\",\n  \"description\": \"Fresh organic fruits\",\n  \"seoTitle\": \"Buy Fresh Fruits Online\",\n  \"seoDescription\": \"Farm fresh fruits delivered to your door.\",\n  \"commissionRate\": 5.0,\n  \"taxRate\": 0.0,\n  \"attributes\": [\n    { \"name\": \"Weight\", \"type\": \"dropdown\", \"options\": [\"500g\", \"1kg\", \"2kg\"] },\n    { \"name\": \"Origin\", \"type\": \"string\" }\n  ],\n  \"filters\": [\"Weight\"]\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Generic Product Management",
+      "description": "Endpoints to create generic EAV products (Digital, Combo, Food, etc.)",
+      "item": [
+        {
+          "name": "Create Generic Product (SIMPLE - Digital)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/products",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "products"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"E-Book: Mastery\",\n  \"slug\": \"ebook-mastery\",\n  \"categoryId\": \"{{categoryId}}\",\n  \"basePrice\": 500,\n  \"sellingPrice\": 400,\n  \"productType\": \"DIGITAL\",\n  \"sku\": \"EB-MASTERY-001\",\n  \"taxRate\": 0,\n  \"attributes\": {\n    \"Format\": \"PDF\",\n    \"Pages\": \"250\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Create Generic Product (VARIABLE - Electronics)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/products",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "products"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Pro Laptop\",\n  \"slug\": \"pro-laptop\",\n  \"categoryId\": \"{{categoryId}}\",\n  \"basePrice\": 1000,\n  \"sellingPrice\": 900,\n  \"productType\": \"VARIABLE\",\n  \"videoUrl\": \"https://youtube.com/watch?v=123\",\n  \"variants\": [\n    {\n      \"sku\": \"LAP-8GB-256\",\n      \"price\": 900,\n      \"stockQuantity\": 50,\n      \"barcode\": \"9876543210\",\n      \"weight\": 1.2,\n      \"dimensions\": \"30x20x1.5\",\n      \"imageUrl\": \"https://example.com/silver.jpg\",\n      \"attributes\": {\n        \"RAM\": \"8GB\",\n        \"Storage\": \"256GB\"\n      }\n    },\n    {\n      \"sku\": \"LAP-16GB-512\",\n      \"price\": 1200,\n      \"discount\": 50,\n      \"stockQuantity\": 20,\n      \"weight\": 1.4,\n      \"dimensions\": \"30x20x1.8\",\n      \"imageUrl\": \"https://example.com/space-grey.jpg\",\n      \"attributes\": {\n        \"RAM\": \"16GB\",\n        \"Storage\": \"512GB\"\n      }\n    }\n  ]\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin Masters Data",
+      "description": "Lightweight lookup APIs to populate frontend React/NextJS dropdowns and config menus",
+      "item": [
+        {
+          "name": "Get Global Enums",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/masters/enums",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "masters", "enums"]
+            }
+          }
+        },
+        {
+          "name": "Get Master Categories",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/masters/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "masters", "categories"]
+            }
+          }
+        },
+        {
+          "name": "Get Master Shops",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/masters/shops",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "masters", "shops"]
             }
           }
         }

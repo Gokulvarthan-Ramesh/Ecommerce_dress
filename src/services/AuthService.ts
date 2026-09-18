@@ -41,7 +41,7 @@ export class AuthService {
     };
   }
 
-  static async register(targetPhone: string, otp: string, password: string, name: string, email?: string, referralCode?: string) {
+  static async register(targetPhone: string, otp: string, name: string, email?: string, referralCode?: string) {
     const cleanPhone = cleanIndianPhoneNumber(targetPhone);
 
     // 1. Validate phone and otp
@@ -85,10 +85,6 @@ export class AuthService {
       }
     }
 
-    // 4. Hash password
-    const passwordHash = await bcrypt.hash(password, ENV.BCRYPT_SALT_ROUNDS);
-
-    // 4. Create user
     const userReferralCode = `${name.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, 'X')}${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
 
     const createdUser = await UserRepository.create({
@@ -96,7 +92,6 @@ export class AuthService {
         name: name.trim(),
         phone: cleanPhone,
         email: email ? email.trim() : undefined,
-        passwordHash,
         role: Role.CUSTOMER,
         referralCode: userReferralCode,
         referredById: referrerId, // Save referred_by_user_id directly
@@ -133,28 +128,36 @@ export class AuthService {
     };
   }
 
-  static async login(identifier: string, password: string) {
-    let cleanPhone = identifier;
-    let isEmail = identifier.includes('@');
-
-    if (!isEmail) {
-      cleanPhone = cleanIndianPhoneNumber(identifier);
-    }
+  static async login(phone: string, otp: string) {
+    const cleanPhone = cleanIndianPhoneNumber(phone);
 
     // 1. Find user
     const user = await UserRepository.findUnique({
-      where: isEmail ? { email: identifier } : { phone: cleanPhone }
+      where: { phone: cleanPhone }
     });
 
-    if (!user || !user.passwordHash) {
-      throw new AppError('Invalid credentials or account not registered with password', 401);
+    if (!user) {
+      throw new AppError('User not registered. Please register first.', 404);
     }
 
-    // 2. Compare password
-    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
-    if (!isPasswordValid) {
-      throw new AppError('Invalid credentials', 401);
+    // 2. Validate OTP
+    const record = await UserRepository.getLatestOtp(cleanPhone);
+
+    if (!record || record.isVerified || record.expiresAt <= new Date()) {
+      throw new AppError('Invalid or expired OTP. Please request a new OTP.');
     }
+
+    if (record.attempts >= 5) {
+      throw new AppError('Too many failed attempts. Please request a new OTP.');
+    }
+
+    const isOtpValid = await bcrypt.compare(otp.toString().trim(), record.otpHash);
+    if (!isOtpValid) {
+      await UserRepository.updateOtp(record.id, { attempts: { increment: 1 } });
+      throw new AppError('Incorrect OTP. Please enter the valid 6-digit code received on WhatsApp.', 401);
+    }
+
+    await UserRepository.updateOtp(record.id, { isVerified: true });
 
     // 3. Generate access token
     const token = jwt.sign(

@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthService } from '../services/AuthService';
 import { ApiResponse } from '../utils/response';
+import { AppError } from '../middleware/errorHandler';
 
 export class AuthController {
   static async sendWhatsAppOtp(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -16,9 +17,9 @@ export class AuthController {
 
   static async register(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { phone, whatsappNumber, otp, password, name, email, referralCode } = req.body;
+      const { phone, whatsappNumber, otp, name, email, referralCode } = req.body;
       const targetPhone = (whatsappNumber || phone || '').toString();
-      const result = await AuthService.register(targetPhone, otp, password, name, email, referralCode);
+      const result = await AuthService.register(targetPhone, otp, name, email, referralCode);
       ApiResponse.created(res, result.data, result.message);
     } catch (error) {
       next(error);
@@ -27,8 +28,14 @@ export class AuthController {
 
   static async login(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { identifier, password } = req.body;
-      const result = await AuthService.login(identifier, password);
+      const { phone, whatsappNumber, otp } = req.body;
+      const targetPhone = (whatsappNumber || phone || '').toString();
+      
+      if (!targetPhone || !otp) {
+        throw new AppError('Phone number and OTP are required for login', 400);
+      }
+
+      const result = await AuthService.login(targetPhone, otp);
       ApiResponse.success(res, result.data, result.message);
     } catch (error) {
       next(error);
