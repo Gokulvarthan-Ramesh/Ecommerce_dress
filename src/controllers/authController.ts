@@ -42,6 +42,16 @@ export class AuthController {
     }
   }
 
+  static async adminLogin(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { email, password } = req.body;
+      const result = await AuthService.adminLogin(email, password);
+      ApiResponse.success(res, result.data, result.message);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async getProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = req.user!.id;

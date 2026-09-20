@@ -200,6 +200,51 @@ export class AuthService {
     throw new AppError('Method deprecated. Use /register and /login endpoints instead.');
   }
 
+  static async adminLogin(email: string, password: string) {
+    const user = await UserRepository.findUnique({ where: { email } });
+    if (!user) {
+      throw new AppError('Invalid credentials or unauthorized access', 401);
+    }
+
+    if (user.role !== 'ADMIN') {
+      throw new AppError('Access restricted to administrators only', 403);
+    }
+
+    if (!user.isActive) {
+      throw new AppError('Your account has been deactivated. Please contact support.', 403);
+    }
+
+    if (!user.passwordHash) {
+      throw new AppError('No password set for this account. Please use password reset.', 401);
+    }
+
+    const isMatch = await bcrypt.compare(password, user.passwordHash);
+    if (!isMatch) {
+      throw new AppError('Invalid credentials', 401);
+    }
+
+    const token = jwt.sign(
+      { id: user.id, email: user.email || '', role: user.role },
+      ENV.JWT_SECRET,
+      { expiresIn: '30d' }
+    );
+
+    return {
+      message: 'Admin logged in successfully',
+      data: {
+        token,
+        user: {
+          id: user.id,
+          name: user.name,
+          phone: user.phone,
+          email: user.email,
+          role: user.role,
+          referralCode: user.referralCode,
+        },
+      },
+    };
+  }
+
   static async getProfile(userId: string) {
     const user = await UserRepository.findUnique({ where: { id: userId } });
     if (!user) {
