@@ -5,6 +5,9 @@ import { WalletService } from './walletService';
 import { OfferService } from './offerService';
 import { CashfreeService } from './cashfreeService';
 import { SystemSettingService } from './systemSettingService';
+import { ServiceabilityService } from './serviceabilityService';
+import { TaxService } from './taxService';
+import { DeliveryService } from './deliveryService';
 import { OrderStatus, PaymentMethod, PaymentStatus, WalletTxCategory, SubOrderStatus } from '@prisma/client';
 
 
@@ -13,7 +16,7 @@ export class CheckoutService {
    * Preview checkout summary (Steps 1-15) without creating order
    */
   static async previewCheckout(userId: string, body: any) {
-    const { couponCode, useWallet } = body;
+    const { couponCode, useWallet, shippingAddress } = body;
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new AppError('User not found', 404);
@@ -49,8 +52,6 @@ export class CheckoutService {
         throw new AppError(`Product ${product.name} is no longer available`);
       }
 
-      // 5. Check variant (implicit by relations)
-
       // 6. Check stock
       if (variant.stockQuantity < item.quantity) {
         throw new AppError(`Not enough stock for ${product.name} (${variant.size}, ${variant.color}). Only ${variant.stockQuantity} left.`);
@@ -77,7 +78,6 @@ export class CheckoutService {
       });
     }
 
-
     // 9. Find applicable auto-applied offer
     const offerResult = await OfferService.calculateDiscount(userId, subtotal);
     const firstOrderDiscount = offerResult.discountAmount;
@@ -90,19 +90,30 @@ export class CheckoutService {
       const coupon = await prisma.coupon.findUnique({ where: { code: couponCode } });
       if (!coupon || !coupon.isActive) throw new AppError('Invalid or expired coupon');
       if (coupon.expiresAt && coupon.expiresAt < new Date()) throw new AppError('Coupon has expired');
-      if (subtotal < Number(coupon.minOrderAmount)) throw new AppError(`Minimum order of ₹${coupon.minOrderAmount} required for this coupon`);
+      let eligibleSubtotal = subtotal;
+      if (coupon.shopId) {
+        eligibleSubtotal = orderItemsData
+          .filter(item => item.shopId === coupon.shopId)
+          .reduce((sum, item) => sum + item.totalPrice, 0);
+          
+        if (eligibleSubtotal === 0) {
+          throw new AppError('This coupon is not valid for the items in your cart');
+        }
+      }
+
+      if (eligibleSubtotal < Number(coupon.minOrderAmount)) throw new AppError(`Minimum order of ₹${coupon.minOrderAmount} required for this coupon`);
       
       const userUsages = await prisma.couponUsage.count({ where: { couponId: coupon.id, userId } });
       if (userUsages >= coupon.perUserLimit) throw new AppError('You have reached the usage limit for this coupon');
       if (coupon.usageLimit && coupon.timesUsed >= coupon.usageLimit) throw new AppError('Coupon usage limit reached');
 
       if (coupon.discountType === 'PERCENTAGE') {
-        couponDiscount = (subtotal * Number(coupon.discountValue)) / 100;
+        couponDiscount = (eligibleSubtotal * Number(coupon.discountValue)) / 100;
         if (coupon.maxDiscount && Number(coupon.maxDiscount) > 0) {
           couponDiscount = Math.min(couponDiscount, Number(coupon.maxDiscount));
         }
       } else {
-        couponDiscount = Number(coupon.discountValue);
+        couponDiscount = Math.min(Number(coupon.discountValue), eligibleSubtotal);
       }
       
       appliedCouponId = coupon.id;
@@ -112,16 +123,16 @@ export class CheckoutService {
     const totalPromotionalDiscount = firstOrderDiscount + couponDiscount;
     const discountedSubtotal = Math.max(0, subtotal - totalPromotionalDiscount);
 
-    // 12. Calculate delivery
-    const shippingConfig = await SystemSettingService.getShippingConfig();
-    let deliveryCharge = 0;
-    if (discountedSubtotal < shippingConfig.free_delivery_threshold) {
-      deliveryCharge = shippingConfig.standard_delivery_fee;
-    }
+    // 12. Calculate Taxes
+    const taxBreakdown = await TaxService.calculateTaxForItems(orderItemsData, shippingAddress);
 
-    let totalAmount = discountedSubtotal + deliveryCharge; // Final payable before wallet
+    // 13. Calculate delivery dynamically
+    const deliveryResult = await DeliveryService.calculateDeliveryCharges(orderItemsData, shippingAddress);
+    const deliveryCharge = deliveryResult.totalDeliveryFee;
 
-    // 13. Check wallet & 14. Calculate wallet usage
+    let totalAmount = discountedSubtotal + taxBreakdown.totalTax + deliveryCharge; // Final payable before wallet
+
+    // 14. Check wallet usage
     let walletAmount = 0;
     if (useWallet) {
       const wallet = await prisma.wallet.findUnique({ where: { userId } });
@@ -142,6 +153,8 @@ export class CheckoutService {
       subtotal,
       firstOrderDiscount,
       couponDiscount,
+      taxBreakdown,
+      deliveryResult,
       deliveryCharge,
       totalAmount,
       walletAmount,
@@ -163,6 +176,8 @@ export class CheckoutService {
       subtotal,
       firstOrderDiscount,
       couponDiscount,
+      taxBreakdown,
+      deliveryResult,
       deliveryCharge,
       totalAmount,
       walletAmount,
@@ -202,7 +217,27 @@ export class CheckoutService {
       state: targetAddress.state,
       pincode: addressPincode,
       country: targetAddress.country || 'India',
+      latitude: targetAddress.latitude || null,
+      longitude: targetAddress.longitude || null,
     };
+
+    // 15b. Enforce Serviceability (Multi-Vendor Delivery Rules)
+    const shopIds = orderItemsData.map((item: any) => item.shopId).filter(Boolean);
+    if (shopIds.length > 0) {
+      const serviceability = await ServiceabilityService.checkCartServiceability(normalizedAddress, shopIds);
+      if (!serviceability.serviceable) {
+        const failedShops = serviceability.shops.filter((s: any) => !s.serviceable);
+        throw new AppError(`Delivery not serviceable for some shops. Reasons: ${failedShops.map((s: any) => s.reason).join(', ')}`, 400);
+      }
+      
+      // Attach the serviceability metadata into the snapshot
+      (normalizedAddress as any).serviceabilityResults = serviceability.shops;
+      (normalizedAddress as any).taxBreakdown = taxBreakdown;
+      (normalizedAddress as any).deliveryResult = deliveryResult;
+    } else {
+      (normalizedAddress as any).taxBreakdown = taxBreakdown;
+      (normalizedAddress as any).deliveryResult = deliveryResult;
+    }
 
     const paymentsConfig = await SystemSettingService.getPaymentsConfig();
     if (paymentMethod === 'COD' && !paymentsConfig.cod_enabled) {
@@ -225,8 +260,9 @@ export class CheckoutService {
         });
       }
 
-      // 16. Lock rows and verify stock inside transaction
-      for (const item of orderItemsData) {
+      // 16. Lock rows in deterministic order to prevent deadlocks
+      const sortedItems = [...orderItemsData].sort((a, b) => a.variantId.localeCompare(b.variantId));
+      for (const item of sortedItems) {
         // SELECT FOR UPDATE locks the row until transaction COMMIT/ROLLBACK
         const lockedVariant = await tx.$queryRaw<{ stockQuantity: number }[]>`
           SELECT "stockQuantity" FROM "product_variants"
@@ -289,8 +325,15 @@ export class CheckoutService {
 
         const shopCommissionRate = shop ? Number(shop.commissionRate) : 10;
         const shopSubtotal = items.reduce((acc, curr) => acc + curr.totalPrice, 0);
+        
+        // Retrieve shop-specific delivery fee
+        const shopShippingFee = (sId !== 'unknown' && deliveryResult?.breakdown?.[sId]) ? deliveryResult.breakdown[sId] : 0;
+        
         const commissionAmount = Math.round(((shopSubtotal * shopCommissionRate) / 100) * 100) / 100;
-        const shopPayoutAmount = Math.max(0, shopSubtotal - commissionAmount);
+        
+        // Payout = Subtotal - Commission + ShippingFee
+        // Note: If taxes are exclusive, they should be added here too. For simplicity in Phase 40, we ensure shipping is accurately passed on.
+        const shopPayoutAmount = Math.max(0, shopSubtotal - commissionAmount + shopShippingFee);
         const subOrderNumber = `${orderNumber}-S${subCounter++}`;
 
         let subOrder = null;
@@ -302,7 +345,7 @@ export class CheckoutService {
               shopId: shop.id,
               status: isCOD || isFreeOrder ? SubOrderStatus.CONFIRMED : SubOrderStatus.CONFIRMED,
               subtotal: shopSubtotal,
-              shippingFee: 0,
+              shippingFee: shopShippingFee,
               commissionRate: shopCommissionRate,
               commissionAmount,
               shopPayoutAmount,
@@ -342,11 +385,27 @@ export class CheckoutService {
         },
       });
 
-      // ALWAYS reserve stock immediately
+      // Handle Inventory: Reserve or Deduct
       for (const item of orderItemsData) {
-        await tx.inventoryTransaction.create({
-          data: { variantId: item.variantId, quantity: -item.quantity, type: 'SALE', referenceId: newOrder.id },
-        });
+        if (isCOD || isFreeOrder) {
+          // Permanently deduct since order is confirmed immediately
+          await tx.inventoryTransaction.create({
+            data: { variantId: item.variantId, quantity: -item.quantity, type: 'SALE', referenceId: newOrder.id },
+          });
+        } else {
+          // Just reserve the stock for pending payments (preventing overselling)
+          await tx.inventoryReservation.create({
+            data: {
+              orderId: newOrder.id,
+              variantId: item.variantId,
+              quantity: item.quantity,
+              status: 'ACTIVE',
+              expiresAt: new Date(Date.now() + 15 * 60 * 1000) // 15 mins expiry
+            }
+          });
+        }
+
+        // Decrement fast-cache stock in both cases so concurrent checkouts cannot double-book
         await tx.productVariant.update({
           where: { id: item.variantId },
           data: { stockQuantity: { decrement: item.quantity } },
@@ -390,9 +449,9 @@ export class CheckoutService {
         orderId: order.id,
         orderAmount: paymentAmount,
         customerId: user.id,
-        customerName: shippingAddress.name || user.name,
-        customerEmail: shippingAddress.email || user.email || `${user.phone}@store.com`,
-        customerPhone: shippingAddress.phone || user.phone,
+        customerName: targetAddress.name || user.name,
+        customerEmail: targetAddress.email || user.email || `${user.phone}@store.com`,
+        customerPhone: targetAddress.phone || user.phone,
       });
 
       const payment = await prisma.payment.create({

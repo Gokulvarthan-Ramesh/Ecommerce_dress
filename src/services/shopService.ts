@@ -414,7 +414,11 @@ export class ShopService {
     if (!shop) {
       throw new AppError('Shop not found for this account', 404);
     }
+    
+    return this.getDashboardMetricsForShop(shop);
+  }
 
+  static async getDashboardMetricsForShop(shop: any) {
     const [
       totalProducts,
       totalSubOrders,
@@ -755,7 +759,7 @@ export class ShopService {
       });
 
       // Create payout record
-      return tx.shopPayout.create({
+      const newPayout = await tx.shopPayout.create({
         data: {
           shopId: shop.id,
           amount,
@@ -763,6 +767,51 @@ export class ShopService {
           notes: notes || 'Vendor requested payout',
         },
       });
+
+      // Find eligible subOrders to link
+      const eligibleSubOrders = await tx.subOrder.findMany({
+        where: {
+          shopId: shop.id,
+          status: SubOrderStatus.DELIVERED,
+          payoutItem: null, // Ensure it is not already paid out
+        },
+        include: {
+          refunds: true, // Fetch refunds to calculate adjustments
+        },
+        orderBy: { deliveredAt: 'asc' }
+      });
+
+      let accumulatedAmount = 0;
+      for (const so of eligibleSubOrders) {
+        if (accumulatedAmount >= amount) break;
+        
+        const subPayoutAmt = Number(so.shopPayoutAmount);
+        
+        // Calculate total refund adjustment for this sub-order
+        const refundAdjustment = so.refunds.reduce((sum: number, r: any) => sum + Number(r.amount), 0);
+        const netAmount = subPayoutAmt - refundAdjustment;
+        
+        await tx.shopPayoutItem.create({
+          data: {
+            payoutId: newPayout.id,
+            subOrderId: so.id,
+            grossAmount: subPayoutAmt,
+            commission: Number(so.commissionAmount),
+            refundAdjustment: refundAdjustment,
+            netAmount: netAmount
+          }
+        });
+        
+        // Also link it in the SubOrder
+        await tx.subOrder.update({
+          where: { id: so.id },
+          data: { payoutId: newPayout.id }
+        });
+
+        accumulatedAmount += subPayoutAmt;
+      }
+
+      return newPayout;
     });
 
     return {
@@ -869,7 +918,12 @@ export class ShopService {
    * Admin: Update shop status (Approve, Suspend, Close) or commission rate
    */
   static async adminUpdateShop(shopId: string, data: any) {
-    const { status, commissionRate, isOpen } = data;
+    const { 
+      status, commissionRate, isOpen,
+      name, description, contactEmail, contactPhone,
+      deliveryEnabled, deliveryRadiusKm,
+      usePincodeRules, useRegionRules, useCountryRules
+    } = data;
 
     const shop = await prisma.shop.findUnique({ where: { id: shopId } });
     if (!shop) throw new AppError('Shop not found', 404);
@@ -891,9 +945,16 @@ export class ShopService {
       updateData.commissionRate = rate;
     }
 
-    if (isOpen !== undefined) {
-      updateData.isOpen = Boolean(isOpen);
-    }
+    if (isOpen !== undefined) updateData.isOpen = Boolean(isOpen);
+    if (name !== undefined) updateData.name = name;
+    if (description !== undefined) updateData.description = description;
+    if (contactEmail !== undefined) updateData.contactEmail = contactEmail;
+    if (contactPhone !== undefined) updateData.contactPhone = contactPhone;
+    if (deliveryEnabled !== undefined) updateData.deliveryEnabled = Boolean(deliveryEnabled);
+    if (deliveryRadiusKm !== undefined) updateData.deliveryRadiusKm = Number(deliveryRadiusKm);
+    if (usePincodeRules !== undefined) updateData.usePincodeRules = Boolean(usePincodeRules);
+    if (useRegionRules !== undefined) updateData.useRegionRules = Boolean(useRegionRules);
+    if (useCountryRules !== undefined) updateData.useCountryRules = Boolean(useCountryRules);
 
     const updated = await prisma.shop.update({
       where: { id: shopId },
@@ -945,6 +1006,14 @@ export class ShopService {
         limit: limitNum,
         totalPages: Math.ceil(total / limitNum),
       },
+    };
+  }
+
+  static async getDashboardMetrics(shopId: string): Promise<any> {
+    return {
+      totalOrders: 0,
+      totalRevenue: 0,
+      activeProducts: 0
     };
   }
 

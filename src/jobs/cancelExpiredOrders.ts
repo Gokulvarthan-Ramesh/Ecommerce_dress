@@ -59,6 +59,12 @@ export async function cancelExpiredPendingOrders() {
           });
         }
 
+        // Release any active inventory reservations
+        await tx.inventoryReservation.updateMany({
+          where: { orderId: order.id, status: 'ACTIVE' },
+          data: { status: 'EXPIRED', releasedAt: new Date() }
+        });
+
         // Refund wallet if any was debited
         if (Number(order.walletAmount) > 0) {
           await WalletService.creditWallet({

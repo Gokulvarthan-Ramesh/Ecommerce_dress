@@ -24,3 +24,18 @@ export const loginSchema = z.object({
     otp: z.string().length(6, 'OTP must be exactly 6 digits'),
   }),
 });
+
+export const refreshTokenSchema = z.object({
+  body: z.object({
+    refreshToken: z.string().min(1, 'Refresh token is required'),
+  }),
+});
+
+export const updateProfileSchema = z.object({
+  body: z.object({
+    name: z.string().min(2, 'Name must be at least 2 characters').optional(),
+    email: z.string().email('Invalid email').optional().or(z.literal('')),
+    gender: z.string().optional().or(z.literal('')),
+    dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid Date of Birth format. Please use YYYY-MM-DD.').optional().or(z.literal('')),
+  }),
+});

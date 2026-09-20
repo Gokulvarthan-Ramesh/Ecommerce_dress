@@ -4415,14 +4415,28 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
             ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/dashboard?timeframe=all",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "dashboard"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "dashboard"
+              ],
               "query": [
-                { "key": "timeframe", "value": "all" }
+                {
+                  "key": "timeframe",
+                  "value": "all"
+                }
               ]
             }
           }
@@ -4432,13 +4446,28 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" },
-              { "key": "Content-Type", "value": "application/json", "type": "text" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
             ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/shops",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "shops"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "shops"
+              ]
             },
             "body": {
               "mode": "raw",
@@ -4451,12 +4480,25 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
             ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/shops/{{shopId}}/products",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "shops", "{{shopId}}", "products"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "shops",
+                "{{shopId}}",
+                "products"
+              ]
             }
           }
         },
@@ -4465,13 +4507,30 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" },
-              { "key": "Content-Type", "value": "application/json", "type": "text" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
             ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/shops/{{shopId}}/products",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "shops", "{{shopId}}", "products"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "shops",
+                "{{shopId}}",
+                "products"
+              ]
             },
             "body": {
               "mode": "raw",
@@ -4484,12 +4543,24 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{authToken}}", "type": "text" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
             ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/vendor/analytics/top-products",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "vendor", "analytics", "top-products"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "analytics",
+                "top-products"
+              ]
             }
           }
         },
@@ -4498,12 +4569,24 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{authToken}}", "type": "text" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
             ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/vendor/inventory/transactions",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "vendor", "inventory", "transactions"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "inventory",
+                "transactions"
+              ]
             }
           }
         },
@@ -4512,13 +4595,29 @@
           "request": {
             "method": "PATCH",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{authToken}}", "type": "text" },
-              { "key": "Content-Type", "value": "application/json", "type": "text" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
             ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/vendor/inventory/bulk-update",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "vendor", "inventory", "bulk-update"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "inventory",
+                "bulk-update"
+              ]
             },
             "body": {
               "mode": "raw",
@@ -4537,15 +4636,32 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
             ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/orders?page=1&limit=20",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "orders"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "orders"
+              ],
               "query": [
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "20" }
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
               ]
             }
           }
@@ -4555,12 +4671,24 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
             ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/orders/{{orderId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "orders", "{{orderId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "orders",
+                "{{orderId}}"
+              ]
             }
           }
         },
@@ -4569,13 +4697,30 @@
           "request": {
             "method": "PATCH",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" },
-              { "key": "Content-Type", "value": "application/json", "type": "text" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
             ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/orders/{{orderId}}/status",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "orders", "{{orderId}}", "status"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "orders",
+                "{{orderId}}",
+                "status"
+              ]
             },
             "body": {
               "mode": "raw",
@@ -4588,13 +4733,30 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" },
-              { "key": "Content-Type", "value": "application/json", "type": "text" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
             ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/orders/{{orderId}}/refund",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "orders", "{{orderId}}", "refund"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "orders",
+                "{{orderId}}",
+                "refund"
+              ]
             },
             "body": {
               "mode": "raw",
@@ -4613,15 +4775,32 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
             ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/users?page=1&limit=20",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "users"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users"
+              ],
               "query": [
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "20" }
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
               ]
             }
           }
@@ -4631,12 +4810,24 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
             ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/users/{{customerId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "users", "{{customerId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users",
+                "{{customerId}}"
+              ]
             }
           }
         },
@@ -4645,13 +4836,30 @@
           "request": {
             "method": "PATCH",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" },
-              { "key": "Content-Type", "value": "application/json", "type": "text" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
             ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/users/{{customerId}}/status",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "users", "{{customerId}}", "status"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users",
+                "{{customerId}}",
+                "status"
+              ]
             },
             "body": {
               "mode": "raw",
@@ -4670,13 +4878,28 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" },
-              { "key": "Content-Type", "value": "application/json", "type": "text" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
             ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/categories",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "categories"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "categories"
+              ]
             },
             "body": {
               "mode": "raw",
@@ -4689,13 +4912,28 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" },
-              { "key": "Content-Type", "value": "application/json", "type": "text" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
             ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/categories",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "categories"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "categories"
+              ]
             },
             "body": {
               "mode": "raw",
@@ -4714,13 +4952,28 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" },
-              { "key": "Content-Type", "value": "application/json", "type": "text" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
             ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/products",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "products"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "products"
+              ]
             },
             "body": {
               "mode": "raw",
@@ -4733,13 +4986,28 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" },
-              { "key": "Content-Type", "value": "application/json", "type": "text" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
             ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/products",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "products"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "products"
+              ]
             },
             "body": {
               "mode": "raw",
@@ -4758,12 +5026,24 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
             ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/masters/enums",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "masters", "enums"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "masters",
+                "enums"
+              ]
             }
           }
         },
@@ -4772,12 +5052,24 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
             ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/masters/categories",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "masters", "categories"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "masters",
+                "categories"
+              ]
             }
           }
         },
@@ -4786,14 +5078,800 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
             ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/masters/shops",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "masters", "shops"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "masters",
+                "shops"
+              ]
             }
           }
+        }
+      ]
+    },
+    {
+      "name": "Phase 39-41 Extended APIs",
+      "description": "New APIs added for gap fixes, delivery serviceability, and advanced admin workflows.",
+      "item": [
+        {
+          "name": "Admin - Get Payments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "payments"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - Get Payment Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/payments/{{paymentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "payments",
+                "{{paymentId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - Get Refunds",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/refunds",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "refunds"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - Update Refund Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/refunds/{{refundId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "refunds",
+                "{{refundId}}",
+                "status"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - Customer Wallet Transactions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/customers/{{customerId}}/wallet/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "customers",
+                "{{customerId}}",
+                "wallet",
+                "transactions"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - Finance Reconciliation",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/finance/reconciliation",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "finance",
+                "reconciliation"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - Get Pending Shops",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/shops/pending",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "shops",
+                "pending"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - Approve Shop",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/shops/{{shopId}}/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "shops",
+                "{{shopId}}",
+                "approve"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - Reject Shop",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/shops/{{shopId}}/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "shops",
+                "{{shopId}}",
+                "reject"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - Approve Payout",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/payouts/{{payoutId}}/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "payouts",
+                "{{payoutId}}",
+                "approve"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - Reject Payout",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/payouts/{{payoutId}}/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "payouts",
+                "{{payoutId}}",
+                "reject"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - Mark Payout Paid",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/payouts/{{payoutId}}/mark-paid",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "payouts",
+                "{{payoutId}}",
+                "mark-paid"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - Approve Return",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/returns/{{returnId}}/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "returns",
+                "{{returnId}}",
+                "approve"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - Reject Return",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/returns/{{returnId}}/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "returns",
+                "{{returnId}}",
+                "reject"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - Receive Return",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/returns/{{returnId}}/receive",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "returns",
+                "{{returnId}}",
+                "receive"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - Pending Products",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/products/pending",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "products",
+                "pending"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - Approve Product",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/products/{{productId}}/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "products",
+                "{{productId}}",
+                "approve"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - Reject Product",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/products/{{productId}}/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "products",
+                "{{productId}}",
+                "reject"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - Inventory Reservations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/inventory/reservations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "inventory",
+                "reservations"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - Low Stock Report",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/inventory/low-stock",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "inventory",
+                "low-stock"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - Get Staff Permissions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/staff/{{staffId}}/permissions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "staff",
+                "{{staffId}}",
+                "permissions"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - Update Staff Permissions",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/staff/{{staffId}}/permissions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "staff",
+                "{{staffId}}",
+                "permissions"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - Diagnostic Serviceability Check",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/serviceability/check",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "serviceability",
+                "check"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Vendor - Get Delivery Settings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/delivery/settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "delivery",
+                "settings"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Vendor - Update Delivery Settings",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/delivery/settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "delivery",
+                "settings"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Vendor - Get Service Areas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/service-areas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "service-areas"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Vendor - Add Bulk Service Areas",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/service-areas/bulk",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "service-areas",
+                "bulk"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Vendor - Delete Service Area",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendor/service-areas/{{areaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "vendor",
+                "service-areas",
+                "{{areaId}}"
+              ]
+            }
+          },
+          "response": []
         }
       ]
     }

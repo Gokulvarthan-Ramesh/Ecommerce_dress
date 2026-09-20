@@ -10,7 +10,7 @@ import { OrderStatus, PaymentMethod, PaymentStatus, WalletTxCategory, WalletTxTy
 import { CartRepository } from '../repositories/CartRepository';
 
 export class OrderService {
-  static async processCashfreeWebhook(payload: any) {
+  static async processCashfreeWebhook(payload: any, webhookId?: string) {
     const eventType = payload.type;
     const orderData = payload.data?.order;
     const paymentData = payload.data?.payment;
@@ -18,7 +18,7 @@ export class OrderService {
     if (!orderData?.order_id) return;
 
     // Use PaymentEvent table for idempotency
-    const eventId = payload.data?.payment?.cf_payment_id || `evt_${Date.now()}`;
+    const eventId = webhookId || payload.data?.payment?.cf_payment_id || `evt_${Date.now()}`;
     
     // Find the payment this relates to
     const payment = await prisma.payment.findFirst({
@@ -180,6 +180,12 @@ export class OrderService {
             method: true,
           },
         },
+        subOrders: {
+          include: {
+            shop: { select: { name: true, slug: true } },
+            items: true,
+          }
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -244,6 +250,26 @@ export class OrderService {
               await tx.couponUsage.create({ data: { couponId: order.appliedCouponId, userId: order.userId, orderId: order.id } });
               await tx.coupon.update({ where: { id: order.appliedCouponId }, data: { timesUsed: { increment: 1 } } });
             }
+
+            // Consume Inventory Reservations
+            const activeReservations = await tx.inventoryReservation.findMany({
+              where: { orderId: order.id, status: 'ACTIVE' }
+            });
+            
+            for (const res of activeReservations) {
+              await tx.inventoryReservation.update({
+                where: { id: res.id },
+                data: { status: 'CONSUMED' }
+              });
+              await tx.inventoryTransaction.create({
+                data: {
+                  variantId: res.variantId,
+                  quantity: -res.quantity, // Negative for sale
+                  type: 'SALE',
+                  referenceId: order.id
+                }
+              });
+            }
           });
         }
       }
@@ -260,6 +286,12 @@ export class OrderService {
         },
         refunds: true,
         statusHistory: { orderBy: { createdAt: 'asc' } },
+        subOrders: {
+          include: {
+            shop: { select: { name: true, slug: true } },
+            items: true,
+          }
+        },
       },
     });
   }
@@ -293,6 +325,12 @@ export class OrderService {
         },
         refunds: true,
         statusHistory: { orderBy: { createdAt: 'asc' } },
+        subOrders: {
+          include: {
+            shop: { select: { name: true, slug: true } },
+            items: true,
+          }
+        },
       },
     });
     return order;
@@ -359,9 +397,23 @@ export class OrderService {
       });
 
       for (const item of order.orderItems) {
-        await tx.inventoryTransaction.create({
-          data: { variantId: item.variantId, quantity: item.quantity, type: 'RETURN', referenceId: order.id }
+        const reservation = await tx.inventoryReservation.findFirst({
+          where: { orderId: order.id, variantId: item.variantId, status: 'ACTIVE' }
         });
+
+        if (reservation) {
+          // Release reservation
+          await tx.inventoryReservation.update({
+            where: { id: reservation.id },
+            data: { status: 'RELEASED', releasedAt: new Date() }
+          });
+        } else {
+          // Permanently return the transaction because it was previously confirmed
+          await tx.inventoryTransaction.create({
+            data: { variantId: item.variantId, quantity: item.quantity, type: 'RETURN', referenceId: order.id }
+          });
+        }
+
         await tx.productVariant.update({
           where: { id: item.variantId },
           data: { stockQuantity: { increment: item.quantity } },
@@ -418,5 +470,255 @@ export class OrderService {
     if (order.paymentStatus === PaymentStatus.SUCCESS) {
       NotificationService.refundInitiated(order.userId, order.orderNumber, Number(order.paymentAmount)).catch(() => {});
     }
+  }
+
+  // =====================================
+  // SUB-ORDER (VENDOR SPECIFIC) ACTIONS
+  // =====================================
+
+  static async cancelSubOrder(userId: string, subOrderId: string, reason: string = 'Cancelled by customer') {
+    const subOrder = await prisma.subOrder.findFirst({
+      where: { id: subOrderId, parentOrder: { userId } },
+      include: { items: true, parentOrder: { include: { payments: true } } },
+    });
+
+    if (!subOrder) throw new AppError('SubOrder not found', 404);
+    if (subOrder.status === SubOrderStatus.SHIPPED || subOrder.status === SubOrderStatus.DELIVERED) {
+      throw new AppError('SubOrder cannot be cancelled as it has already been dispatched/delivered');
+    }
+    if (subOrder.status === SubOrderStatus.CANCELLED) throw new AppError('SubOrder is already cancelled');
+
+    const refundAmount = Number(subOrder.subtotal) + Number(subOrder.shippingFee);
+
+    await prisma.$transaction(async (tx) => {
+      await tx.subOrder.update({
+        where: { id: subOrderId },
+        data: {
+          status: SubOrderStatus.CANCELLED,
+          cancelledAt: new Date(),
+          cancelReason: reason,
+        },
+      });
+
+      for (const item of subOrder.items) {
+        const reservation = await tx.inventoryReservation.findFirst({
+          where: { orderId: subOrder.parentOrder.id, variantId: item.variantId, status: 'ACTIVE' }
+        });
+
+        if (reservation) {
+          // Release reservation
+          await tx.inventoryReservation.update({
+            where: { id: reservation.id },
+            data: { status: 'RELEASED', releasedAt: new Date() }
+          });
+        } else {
+          // Permanently return the transaction because it was previously confirmed
+          await tx.inventoryTransaction.create({
+            data: { variantId: item.variantId, quantity: item.quantity, type: 'RETURN', referenceId: subOrderId }
+          });
+        }
+
+        await tx.productVariant.update({
+          where: { id: item.variantId },
+          data: { stockQuantity: { increment: item.quantity } },
+        });
+      }
+
+      if (subOrder.parentOrder.paymentStatus === PaymentStatus.SUCCESS) {
+        await tx.refund.create({
+          data: {
+            orderId: subOrder.parentOrder.id,
+            subOrderId: subOrder.id,
+            amount: refundAmount,
+            reason,
+            status: PaymentStatus.PENDING,
+          },
+        });
+      }
+    });
+
+    return { message: 'Sub-order cancelled successfully and refund initiated if applicable.' };
+  }
+
+  static async requestSubOrderReturn(userId: string, subOrderId: string, body: any) {
+    const { reason, notes, items } = body;
+    const subOrder = await prisma.subOrder.findFirst({
+      where: { id: subOrderId, parentOrder: { userId } },
+      include: { items: true, parentOrder: true },
+    });
+
+    if (!subOrder) throw new AppError('SubOrder not found', 404);
+    if (subOrder.status !== SubOrderStatus.DELIVERED) {
+      throw new AppError('Only delivered items can be returned');
+    }
+    
+    // Check if an open return request already exists
+    const existingReq = await prisma.returnRequest.findFirst({
+      where: { subOrderId, status: { in: ['REQUESTED', 'APPROVED'] } }
+    });
+    if (existingReq) {
+      throw new AppError('An active return request already exists for this order');
+    }
+
+    const itemsToReturn = items || subOrder.items.map((i: any) => ({
+      orderItemId: i.id,
+      quantity: i.quantity,
+      reason: reason || 'Customer requested return'
+    }));
+
+    if (!itemsToReturn.length) {
+      throw new AppError('No items specified for return');
+    }
+
+    const newReturn = await prisma.$transaction(async (tx) => {
+      // Get all previous non-rejected return items for this subOrder
+      const previousReturns = await tx.returnItem.findMany({
+        where: {
+          returnRequest: {
+            subOrderId: subOrderId,
+            status: { not: 'REJECTED' }
+          }
+        }
+      });
+
+      const returnReq = await tx.returnRequest.create({
+        data: {
+          orderId: subOrder.parentOrderId,
+          subOrderId: subOrder.id,
+          customerId: userId,
+          status: 'REQUESTED',
+          reason: reason || 'Multiple items',
+          notes: notes || null,
+        }
+      });
+
+      for (const item of itemsToReturn) {
+        const orderItem = subOrder.items.find((i: any) => i.id === item.orderItemId);
+        if (!orderItem) throw new AppError(`Item ${item.orderItemId} not part of this sub-order`);
+        
+        const alreadyReturned = previousReturns
+          .filter((pr: any) => pr.orderItemId === item.orderItemId)
+          .reduce((sum: number, pr: any) => sum + pr.quantity, 0);
+
+        if (item.quantity > (orderItem.quantity - alreadyReturned)) {
+          throw new AppError(`Cannot return ${item.quantity} units for item ${item.orderItemId}. Only ${orderItem.quantity - alreadyReturned} units remain eligible for return.`);
+        }
+        
+        await tx.returnItem.create({
+          data: {
+            returnRequestId: returnReq.id,
+            orderItemId: orderItem.id,
+            quantity: item.quantity,
+            reason: item.reason || reason,
+          }
+        });
+      }
+
+      await tx.subOrder.update({
+        where: { id: subOrderId },
+        data: {
+          returnStatus: 'REQUESTED',
+          returnRequestedAt: new Date(),
+          returnReason: reason,
+          status: SubOrderStatus.RETURN_REQUESTED,
+        },
+      });
+
+      return returnReq;
+    });
+
+    return newReturn;
+  }
+
+  static async processSubOrderReturn(subOrderId: string, action: 'APPROVE' | 'REJECT', remarks?: string) {
+    const returnReq = await prisma.returnRequest.findFirst({
+      where: { subOrderId, status: 'REQUESTED' },
+      include: { items: true, subOrder: { include: { items: true, parentOrder: true } } }
+    });
+
+    if (!returnReq) {
+      throw new AppError('Valid return request not found for this sub-order', 404);
+    }
+
+    const subOrder = returnReq.subOrder;
+
+    if (action === 'REJECT') {
+      await prisma.$transaction(async (tx) => {
+        await tx.returnRequest.update({
+          where: { id: returnReq.id },
+          data: { status: 'REJECTED', rejectedAt: new Date(), notes: remarks || returnReq.notes }
+        });
+        await tx.subOrder.update({
+          where: { id: subOrderId },
+          data: { returnStatus: 'REJECTED', status: SubOrderStatus.DELIVERED },
+        });
+      });
+      return { message: 'Return rejected' };
+    }
+
+    // APPROVE
+    let totalRefundAmount = 0;
+    for (const rItem of returnReq.items) {
+      const originalOrderItem = subOrder.items.find((i: any) => i.id === rItem.orderItemId);
+      if (originalOrderItem) {
+        totalRefundAmount += Number(originalOrderItem.unitPrice) * rItem.quantity;
+      }
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.returnRequest.update({
+        where: { id: returnReq.id },
+        data: { status: 'APPROVED', approvedAt: new Date(), notes: remarks || returnReq.notes }
+      });
+
+      await tx.subOrder.update({
+        where: { id: subOrderId },
+        data: {
+          returnStatus: 'APPROVED',
+        },
+      });
+
+      for (const item of returnReq.items) {
+        const originalOrderItem = subOrder.items.find((i: any) => i.id === item.orderItemId);
+        if (originalOrderItem) {
+          await tx.inventoryTransaction.create({
+            data: { variantId: originalOrderItem.variantId, quantity: item.quantity, type: 'RETURN', referenceId: returnReq.id }
+          });
+          await tx.productVariant.update({
+            where: { id: originalOrderItem.variantId },
+            data: { stockQuantity: { increment: item.quantity } },
+          });
+        }
+      }
+
+      const refund = await tx.refund.create({
+        data: {
+          orderId: subOrder.parentOrderId,
+          subOrderId: subOrder.id,
+          amount: totalRefundAmount,
+          reason: returnReq.reason || 'Return Approved',
+          status: PaymentStatus.PENDING,
+        },
+      });
+
+      for (const item of returnReq.items) {
+        const originalOrderItem = subOrder.items.find((i: any) => i.id === item.orderItemId);
+        if (originalOrderItem) {
+          await tx.refundItem.create({
+            data: {
+              refundId: refund.id,
+              orderItemId: item.orderItemId,
+              quantity: item.quantity,
+              refundAmount: Number(originalOrderItem.unitPrice) * item.quantity
+            }
+          });
+        }
+      }
+      
+      // We would also reverse commission from the vendor's wallet here
+      // But currently shop payouts are handled in ShopService
+    });
+
+    return { message: 'Return approved, inventory restored, and refund queued.' };
   }
 }

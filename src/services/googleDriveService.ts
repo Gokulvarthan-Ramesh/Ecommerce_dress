@@ -49,7 +49,7 @@ export class GoogleDriveService {
   static formatToDirectImageUrl(urlOrId: string): string {
     const fileId = this.extractFileId(urlOrId);
     if (!fileId) {
-      // If not a Google Drive link, return original URL (e.g. Unsplash or custom CDN)
+      this.validateImageUrl(urlOrId);
       return urlOrId;
     }
 
@@ -61,6 +61,56 @@ export class GoogleDriveService {
    */
   static formatImageUrls(urls: string[]): string[] {
     if (!Array.isArray(urls)) return [];
-    return urls.map((url) => this.formatToDirectImageUrl(url));
+    return urls.map((url) => {
+      this.validateImageUrl(url);
+      return this.formatToDirectImageUrl(url);
+    });
+  }
+
+  /**
+   * Strict MIME validation / Extension hardening for provided image URLs
+   */
+  static validateImageUrl(url: string): void {
+    if (!url) return;
+    
+    // If it's a base64 string, check mime type strictly
+    if (url.startsWith('data:')) {
+      const match = url.match(/^data:image\/(png|jpeg|jpg|webp);base64,/);
+      if (!match) {
+        throw new Error('Invalid image MIME type for Base64. Only PNG, JPEG, JPG, WEBP are allowed.');
+      }
+      return;
+    }
+
+    // Google drive links are allowed (they don't always end with extension)
+    if (url.includes('drive.google.com') || url.includes('googleusercontent.com')) {
+      return;
+    }
+
+    // Cloudinary links
+    if (url.includes('res.cloudinary.com')) {
+      return;
+    }
+
+    // Unsplash
+    if (url.includes('images.unsplash.com')) {
+      return;
+    }
+
+    // For standard URLs, check extension
+    const urlLower = url.toLowerCase();
+    const validExtensions = ['.png', '.jpg', '.jpeg', '.webp', '.svg', '.gif'];
+    const hasValidExtension = validExtensions.some(ext => {
+      try {
+        const urlObj = new URL(urlLower);
+        return urlObj.pathname.endsWith(ext);
+      } catch {
+        return urlLower.endsWith(ext);
+      }
+    });
+
+    if (!hasValidExtension) {
+      throw new Error(`Invalid image format or untrusted domain. Only ${validExtensions.join(', ')} extensions are allowed.`);
+    }
   }
 }

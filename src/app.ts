@@ -5,7 +5,9 @@ import morgan from 'morgan';
 import apiRouter from './routes';
 import { errorHandler } from './middleware/errorHandler';
 
-const app: Application = express();
+const app = express();
+app.set('trust proxy', 1);
+// app.use(globalLimiter);
 
 import path from 'path';
 

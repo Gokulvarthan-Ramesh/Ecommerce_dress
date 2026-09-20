@@ -209,4 +209,40 @@ export class OrderController {
       next(error);
     }
   }
+
+  /**
+   * Customer-initiated sub-order (vendor specific) cancellation
+   */
+  static async cancelSubOrder(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const { subOrderId } = req.params;
+      const { reason = 'Cancelled by customer' } = req.body;
+
+      const result = await OrderService.cancelSubOrder(userId, subOrderId, reason);
+      ApiResponse.success(res, null, result.message);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Customer-initiated return request for a specific sub-order
+   */
+  static async requestSubOrderReturn(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const { subOrderId } = req.params;
+      const { reason } = req.body;
+
+      if (!reason) {
+        throw new AppError('Return reason is required', 400);
+      }
+
+      const updated = await OrderService.requestSubOrderReturn(userId, subOrderId, reason);
+      ApiResponse.success(res, updated, 'Sub-order return request submitted successfully.');
+    } catch (error) {
+      next(error);
+    }
+  }
 }

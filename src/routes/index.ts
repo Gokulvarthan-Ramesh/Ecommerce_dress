@@ -13,6 +13,7 @@ import configRoutes from './configRoutes';
 import { ConfigController } from '../controllers/configController';
 import reviewRoutes from './reviewRoutes';
 import wishlistRoutes from './wishlistRoutes';
+import deliveryRoutes from './deliveryRoutes';
 
 import addressRoutes from './addressRoutes';
 import homeRoutes from './homeRoutes';
@@ -71,6 +72,6 @@ router.use('/webhooks', webhookRoutes);
 router.use('/admin', adminRoutes);
 router.use('/reviews', reviewRoutes);
 router.use('/wishlist', wishlistRoutes);
+router.use('/delivery', deliveryRoutes);
 
 export default router;
-

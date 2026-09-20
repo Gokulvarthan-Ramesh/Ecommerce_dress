@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { AdminController } from '../controllers/adminController';
 import { ShopController } from '../controllers/shopController';
 import { ReviewController } from '../controllers/reviewController';
+import { DeliveryController } from '../controllers/deliveryController';
 import { authenticateToken } from '../middleware/auth';
 import { requireAdmin } from '../middleware/adminGuard';
 
@@ -21,6 +22,13 @@ router.post('/customers', AdminController.createCustomer);
 router.put('/customers/:id', AdminController.updateCustomer);
 router.patch('/customers/:id/status', AdminController.toggleCustomerStatus);
 router.delete('/customers/:id', AdminController.deleteCustomer);
+router.get('/customers/:id/addresses', AdminController.getCustomerAddresses);
+router.post('/customers/:id/addresses', AdminController.createCustomerAddress);
+router.put('/customers/:id/addresses/:addressId', AdminController.updateCustomerAddress);
+router.delete('/customers/:id/addresses/:addressId', AdminController.deleteCustomerAddress);
+router.get('/customers/:id/cart', AdminController.getCustomerCart);
+router.get('/customers/:id/wishlist', AdminController.getCustomerWishlist);
+router.post('/customers/:id/orders', AdminController.adminCreateOrder);
 
 // 3. Category Management (CRUD)
 router.get('/categories', AdminController.getCategories);
@@ -108,9 +116,77 @@ router.put('/shops/:id', ShopController.adminUpdateShop);
 router.get('/payouts', ShopController.adminListPayouts);
 router.put('/payouts/:id', ShopController.adminProcessPayout);
 
+// Vendor-specific analytical views (Impersonation) & Advanced Controls
+router.get('/shops/:shopId/dashboard', ShopController.adminGetShopDashboard);
+router.get('/shops/:shopId/analytics/top-products', ShopController.adminGetShopTopProducts);
+router.get('/shops/:shopId/inventory/transactions', ShopController.adminGetShopInventoryTransactions);
+router.get('/shops/:shopId/orders', ShopController.adminGetShopSubOrders);
+router.delete('/shops/:id', ShopController.adminDeleteShop);
+router.patch('/shops/:shopId/inventory/bulk-update', ShopController.adminBulkUpdateInventory);
+
 // 17. Reviews & Ratings Moderation
 router.get('/reviews', ReviewController.adminGetReviews);
 router.delete('/reviews/:id', ReviewController.adminDeleteReview);
 
-export default router;
+// 18. Global Attributes Management
+router.get('/attributes', AdminController.getAttributes);
+router.post('/attributes', AdminController.createAttribute);
+router.put('/attributes/:id', AdminController.updateAttribute);
+router.delete('/attributes/:id', AdminController.deleteAttribute);
 
+// 19. Admin / Staff User Management
+router.get('/staff', AdminController.getAdminUsers);
+router.post('/staff', AdminController.createAdminUser);
+router.put('/staff/:id', AdminController.updateAdminUser);
+
+// 20. Referral Tracking
+router.get('/referrals', AdminController.getReferrals);
+
+// --- NEW EXTENDED GAP API ROUTES ---
+
+// Payments
+router.get('/payments', AdminController.getPayments);
+router.get('/payments/:id', AdminController.getPaymentDetails);
+
+// Refunds
+router.get('/refunds', AdminController.getRefunds);
+router.patch('/refunds/:id/status', AdminController.updateRefundStatus);
+
+// Wallet Transactions Audit
+router.get('/customers/:id/wallet/transactions', AdminController.getCustomerWalletTransactions);
+
+// Finance Reconciliation
+router.get('/finance/reconciliation', AdminController.getFinanceReconciliation);
+
+// Vendor Onboarding
+router.get('/shops/pending', ShopController.getPendingShops);
+router.post('/shops/:id/approve', ShopController.approveShop);
+router.post('/shops/:id/reject', ShopController.rejectShop);
+
+// Payout Workflow
+router.patch('/payouts/:id/approve', ShopController.adminApprovePayout);
+router.patch('/payouts/:id/reject', ShopController.adminRejectPayout);
+router.patch('/payouts/:id/mark-paid', ShopController.adminMarkPayoutPaid);
+
+// Granular Return Management
+router.patch('/returns/:id/approve', AdminController.adminApproveReturn);
+router.patch('/returns/:id/reject', AdminController.adminRejectReturn);
+router.patch('/returns/:id/receive', AdminController.adminReceiveReturn);
+
+// Product Moderation
+router.get('/products/pending', AdminController.getPendingProducts);
+router.post('/products/:id/approve', AdminController.approveProduct);
+router.post('/products/:id/reject', AdminController.rejectProduct);
+
+// Inventory
+router.get('/inventory/reservations', AdminController.getInventoryReservations);
+router.get('/inventory/low-stock', AdminController.getLowStockReport);
+
+// Staff Permissions
+router.get('/staff/:id/permissions', AdminController.getStaffPermissions);
+router.put('/staff/:id/permissions', AdminController.updateStaffPermissions);
+
+// 25. Serviceability Diagnostic
+router.post('/serviceability/check', DeliveryController.adminDiagnosticCheck);
+
+export default router;

@@ -18,5 +18,7 @@ router.get('/', OrderController.getMyOrders);
 router.get('/:id', OrderController.getOrderDetails);
 router.post('/:id/cancel', OrderController.cancelOrder);
 router.post('/:id/return', OrderController.requestReturn);
+router.post('/sub/:subOrderId/cancel', OrderController.cancelSubOrder);
+router.post('/sub/:subOrderId/return', OrderController.requestSubOrderReturn);
 
 export default router;
