@@ -97,7 +97,12 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"phone\": \"9876543210\",\n  \"otp\": \"123456\",\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"gender\": \"MALE\",\n  \"dob\": \"1990-01-01\",\n  \"referralCode\": \"\"\n}"
+              "raw": "{\n    \"name\": \"John Doe\",\n    \"whatsappNumber\": \"9876543210\",\n    \"otp\": \"123456\",\n    \"email\": \"john.doe@example.com\",\n    \"gender\": \"MALE\",\n    \"dob\": \"1990-01-01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/auth/register",
@@ -126,7 +131,12 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"phone\": \"9876543210\",\n  \"otp\": \"123456\"\n}"
+              "raw": "{\n    \"whatsappNumber\": \"9876543210\",\n    \"otp\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/auth/login",
@@ -496,7 +506,12 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"phone\": \"9876543210\",\n  \"otp\": \"123456\",\n  \"password\": \"securePass123\",\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"referralCode\": \"\"\n}"
+              "raw": "{\n    \"name\": \"John Doe\",\n    \"whatsappNumber\": \"9876543210\",\n    \"otp\": \"123456\",\n    \"email\": \"john.doe@example.com\",\n    \"gender\": \"MALE\",\n    \"dob\": \"1990-01-01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/auth/register",
@@ -539,7 +554,12 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"identifier\": \"9876543210\",\n  \"password\": \"securePass123\"\n}"
+              "raw": "{\n    \"whatsappNumber\": \"9876543210\",\n    \"otp\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/auth/login",
@@ -583,7 +603,12 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"identifier\": \"decodexfashionwear@gmail.com\",\n  \"password\": \"Admin@12345\"\n}"
+              "raw": "{\n    \"whatsappNumber\": \"9876543210\",\n    \"otp\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/auth/login",
@@ -761,7 +786,12 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Home\",\n  \"phone\": \"9876543210\",\n  \"addressLine1\": \"Flat 402, Sunshine Residency\",\n  \"addressLine2\": \"Near High Street Mall\",\n  \"city\": \"Bengaluru\",\n  \"district\": \"Bengaluru Urban\",\n  \"state\": \"Karnataka\",\n  \"pincode\": \"560001\",\n  \"country\": \"India\",\n  \"isDefault\": true\n}"
+              "raw": "{\n    \"name\": \"Home\",\n    \"phone\": \"9876543210\",\n    \"street\": \"123 Main St\",\n    \"city\": \"Chennai\",\n    \"state\": \"Tamil Nadu\",\n    \"pincode\": \"600001\",\n    \"country\": \"India\",\n    \"isDefault\": true,\n    \"latitude\": 13.0827,\n    \"longitude\": 80.2707\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/addresses",
@@ -847,7 +877,16 @@
                 }
               ]
             },
-            "description": "Set a specific saved address as the default delivery address."
+            "description": "Set a specific saved address as the default delivery address.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           }
         },
         {
@@ -1239,7 +1278,12 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"variantId\": \"VARIANT_ID_HERE\",\n  \"quantity\": 1\n}"
+              "raw": "{\n    \"variantId\": \"VARIANT_UUID_HERE\",\n    \"quantity\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/cart/items",
@@ -1375,7 +1419,12 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"items\": [],\n  \"couponCode\": \"\",\n  \"useWallet\": false\n}"
+              "raw": "{\n    \"addressId\": \"ADDRESS_UUID_HERE\",\n    \"couponCode\": \"WELCOME10\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/orders/preview",
@@ -1408,7 +1457,12 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"paymentMethod\": \"CASHFREE\",\n  \"useWallet\": false,\n  \"couponCode\": \"\",\n  \"shippingAddress\": {\n    \"fullName\": \"John Doe\",\n    \"phone\": \"9876543210\",\n    \"addressLine1\": \"123 Main Street\",\n    \"addressLine2\": \"Apt 4B\",\n    \"city\": \"Mumbai\",\n    \"state\": \"Maharashtra\",\n    \"postalCode\": \"400001\",\n    \"country\": \"India\"\n  }\n}"
+              "raw": "{\n    \"addressId\": \"ADDRESS_UUID_HERE\",\n    \"couponCode\": \"WELCOME10\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/orders/checkout",
@@ -1511,7 +1565,16 @@
                 }
               ]
             },
-            "description": "Explicitly verify and synchronize payment status directly with Cashfree's API. Updates order to CONFIRMED and paymentStatus to SUCCESS upon verification."
+            "description": "Explicitly verify and synchronize payment status directly with Cashfree's API. Updates order to CONFIRMED and paymentStatus to SUCCESS upon verification.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           }
         },
         {
@@ -1626,7 +1689,12 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"reason\": \"Item size does not fit as expected\"\n}"
+              "raw": "{\n    \"reason\": \"Size did not fit\",\n    \"items\": [\n        {\n            \"subOrderId\": \"SUBORDER_UUID_HERE\",\n            \"quantity\": 1\n        }\n    ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/orders/:id/return",
@@ -1822,7 +1890,16 @@
                 }
               ]
             },
-            "description": "Mark a specific notification as read."
+            "description": "Mark a specific notification as read.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           }
         },
         {
@@ -1847,7 +1924,16 @@
                 "read-all"
               ]
             },
-            "description": "Mark all notifications for the current user as read."
+            "description": "Mark all notifications for the current user as read.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           }
         },
         {
@@ -2013,7 +2099,12 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"identifier\": \"decodexfashionwear@gmail.com\",\n  \"password\": \"Admin@12345\"\n}"
+                  "raw": "{\n    \"whatsappNumber\": \"9876543210\",\n    \"otp\": \"123456\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/v1/auth/login",
@@ -2507,7 +2598,12 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"id\": \"\",\n  \"name\": \"Classic Cotton T-Shirt\",\n  \"slug\": \"classic-cotton-tshirt\",\n  \"description\": \"Premium 100% cotton t-shirt with a comfortable fit\",\n  \"brand\": \"StyleCraft\",\n  \"fabric\": \"Cotton\",\n  \"fit\": \"Regular\",\n  \"sleeve\": \"Half Sleeve\",\n  \"pattern\": \"Solid\",\n  \"categoryId\": \"CATEGORY_ID_HERE\",\n  \"basePrice\": 999,\n  \"sellingPrice\": 699,\n  \"buyingPrice\": 350,\n  \"isFeatured\": false,\n  \"isActive\": true,\n  \"images\": [\n    \"https://drive.google.com/file/d/FILE_ID_1/view\",\n    \"https://drive.google.com/file/d/FILE_ID_2/view\"\n  ],\n  \"variants\": [\n    {\n      \"sku\": \"CCT-BLK-S\",\n      \"size\": \"S\",\n      \"color\": \"Black\",\n      \"colorHex\": \"#000000\",\n      \"price\": 0,\n      \"stockQuantity\": 50,\n      \"isActive\": true\n    },\n    {\n      \"sku\": \"CCT-BLK-M\",\n      \"size\": \"M\",\n      \"color\": \"Black\",\n      \"colorHex\": \"#000000\",\n      \"price\": 0,\n      \"stockQuantity\": 75,\n      \"isActive\": true\n    },\n    {\n      \"sku\": \"CCT-WHT-L\",\n      \"size\": \"L\",\n      \"color\": \"White\",\n      \"colorHex\": \"#FFFFFF\",\n      \"price\": 0,\n      \"stockQuantity\": 60,\n      \"isActive\": true\n    }\n  ]\n}"
+                  "raw": "{\n    \"name\": \"Premium Cotton T-Shirt\",\n    \"slug\": \"premium-cotton-tshirt\",\n    \"description\": \"High quality 100% cotton T-shirt\",\n    \"brand\": \"GokulBrand\",\n    \"fabric\": \"Cotton\",\n    \"fit\": \"Regular\",\n    \"sleeve\": \"Short Sleeve\",\n    \"pattern\": \"Solid\",\n    \"categoryId\": \"CATEGORY_UUID_HERE\",\n    \"basePrice\": 500,\n    \"sellingPrice\": 400,\n    \"buyingPrice\": 300,\n    \"isActive\": true,\n    \"images\": [\n        \"https://example.com/image1.jpg\"\n    ],\n    \"variants\": [\n        {\n            \"size\": \"M\",\n            \"color\": \"Red\",\n            \"sku\": \"TSHIRT-M-RED\",\n            \"stockCount\": 50,\n            \"priceOverride\": 450\n        }\n    ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/v1/admin/products",
@@ -2641,7 +2737,16 @@
                     }
                   ]
                 },
-                "description": "Quick toggle product active / inactive visibility."
+                "description": "Quick toggle product active / inactive visibility.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
               }
             },
             {
@@ -3715,7 +3820,16 @@
                     }
                   ]
                 },
-                "description": "Toggle promotional offer active state."
+                "description": "Toggle promotional offer active state.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
               }
             },
             {
@@ -3844,7 +3958,16 @@
                     }
                   ]
                 },
-                "description": "Toggle banner visibility on customer home screen."
+                "description": "Toggle banner visibility on customer home screen.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
               }
             },
             {
@@ -3973,7 +4096,16 @@
                     }
                   ]
                 },
-                "description": "Activate or deactivate a discount coupon."
+                "description": "Activate or deactivate a discount coupon.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
               }
             },
             {
@@ -4977,7 +5109,12 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"E-Book: Mastery\",\n  \"slug\": \"ebook-mastery\",\n  \"categoryId\": \"{{categoryId}}\",\n  \"basePrice\": 500,\n  \"sellingPrice\": 400,\n  \"productType\": \"DIGITAL\",\n  \"sku\": \"EB-MASTERY-001\",\n  \"taxRate\": 0,\n  \"attributes\": {\n    \"Format\": \"PDF\",\n    \"Pages\": \"250\"\n  }\n}"
+              "raw": "{\n    \"name\": \"Premium Cotton T-Shirt\",\n    \"slug\": \"premium-cotton-tshirt\",\n    \"description\": \"High quality 100% cotton T-shirt\",\n    \"brand\": \"GokulBrand\",\n    \"fabric\": \"Cotton\",\n    \"fit\": \"Regular\",\n    \"sleeve\": \"Short Sleeve\",\n    \"pattern\": \"Solid\",\n    \"categoryId\": \"CATEGORY_UUID_HERE\",\n    \"basePrice\": 500,\n    \"sellingPrice\": 400,\n    \"buyingPrice\": 300,\n    \"isActive\": true,\n    \"images\": [\n        \"https://example.com/image1.jpg\"\n    ],\n    \"variants\": [\n        {\n            \"size\": \"M\",\n            \"color\": \"Red\",\n            \"sku\": \"TSHIRT-M-RED\",\n            \"stockCount\": 50,\n            \"priceOverride\": 450\n        }\n    ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           }
         },
@@ -5011,7 +5148,12 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Pro Laptop\",\n  \"slug\": \"pro-laptop\",\n  \"categoryId\": \"{{categoryId}}\",\n  \"basePrice\": 1000,\n  \"sellingPrice\": 900,\n  \"productType\": \"VARIABLE\",\n  \"videoUrl\": \"https://youtube.com/watch?v=123\",\n  \"variants\": [\n    {\n      \"sku\": \"LAP-8GB-256\",\n      \"price\": 900,\n      \"stockQuantity\": 50,\n      \"barcode\": \"9876543210\",\n      \"weight\": 1.2,\n      \"dimensions\": \"30x20x1.5\",\n      \"imageUrl\": \"https://example.com/silver.jpg\",\n      \"attributes\": {\n        \"RAM\": \"8GB\",\n        \"Storage\": \"256GB\"\n      }\n    },\n    {\n      \"sku\": \"LAP-16GB-512\",\n      \"price\": 1200,\n      \"discount\": 50,\n      \"stockQuantity\": 20,\n      \"weight\": 1.4,\n      \"dimensions\": \"30x20x1.8\",\n      \"imageUrl\": \"https://example.com/space-grey.jpg\",\n      \"attributes\": {\n        \"RAM\": \"16GB\",\n        \"Storage\": \"512GB\"\n      }\n    }\n  ]\n}"
+              "raw": "{\n    \"name\": \"Premium Cotton T-Shirt\",\n    \"slug\": \"premium-cotton-tshirt\",\n    \"description\": \"High quality 100% cotton T-shirt\",\n    \"brand\": \"GokulBrand\",\n    \"fabric\": \"Cotton\",\n    \"fit\": \"Regular\",\n    \"sleeve\": \"Short Sleeve\",\n    \"pattern\": \"Solid\",\n    \"categoryId\": \"CATEGORY_UUID_HERE\",\n    \"basePrice\": 500,\n    \"sellingPrice\": 400,\n    \"buyingPrice\": 300,\n    \"isActive\": true,\n    \"images\": [\n        \"https://example.com/image1.jpg\"\n    ],\n    \"variants\": [\n        {\n            \"size\": \"M\",\n            \"color\": \"Red\",\n            \"sku\": \"TSHIRT-M-RED\",\n            \"stockCount\": 50,\n            \"priceOverride\": 450\n        }\n    ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           }
         }
@@ -5208,6 +5350,15 @@
                 "{{refundId}}",
                 "status"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
           "response": []
@@ -5319,6 +5470,15 @@
                 "{{shopId}}",
                 "approve"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
           "response": []
@@ -5347,6 +5507,15 @@
                 "{{shopId}}",
                 "reject"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
           "response": []
@@ -5375,6 +5544,15 @@
                 "{{payoutId}}",
                 "approve"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
           "response": []
@@ -5403,6 +5581,15 @@
                 "{{payoutId}}",
                 "reject"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
           "response": []
@@ -5431,6 +5618,15 @@
                 "{{payoutId}}",
                 "mark-paid"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
           "response": []
@@ -5459,6 +5655,15 @@
                 "{{returnId}}",
                 "approve"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
           "response": []
@@ -5487,6 +5692,15 @@
                 "{{returnId}}",
                 "reject"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
           "response": []
@@ -5515,6 +5729,15 @@
                 "{{returnId}}",
                 "receive"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
           "response": []
@@ -5570,6 +5793,15 @@
                 "{{productId}}",
                 "approve"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
           "response": []
@@ -5598,6 +5830,15 @@
                 "{{productId}}",
                 "reject"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
           "response": []
@@ -5708,6 +5949,15 @@
                 "{{staffId}}",
                 "permissions"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
           "response": []
@@ -5735,6 +5985,15 @@
                 "serviceability",
                 "check"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
           "response": []
@@ -5789,6 +6048,15 @@
                 "delivery",
                 "settings"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
           "response": []
@@ -5842,6 +6110,15 @@
                 "service-areas",
                 "bulk"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
           "response": []
