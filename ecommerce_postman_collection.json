@@ -2740,7 +2740,7 @@
                 "description": "Quick toggle product active / inactive visibility.",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n    \n}",
+                  "raw": "{\n    \"isActive\": false\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -3823,7 +3823,7 @@
                 "description": "Toggle promotional offer active state.",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n    \n}",
+                  "raw": "{\n    \"isActive\": false\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -3961,7 +3961,7 @@
                 "description": "Toggle banner visibility on customer home screen.",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n    \n}",
+                  "raw": "{\n    \"isActive\": false\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -4099,7 +4099,7 @@
                 "description": "Activate or deactivate a discount coupon.",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n    \n}",
+                  "raw": "{\n    \"isActive\": false\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -5353,7 +5353,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"status\": \"PROCESSED\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -5510,7 +5510,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"reason\": \"Incomplete documentation\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -5584,7 +5584,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"reason\": \"Bank details mismatched\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -5621,7 +5621,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"transactionId\": \"TXN_9876543210\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -5695,7 +5695,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"reason\": \"Product damaged by customer\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -5833,7 +5833,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"reason\": \"Images violate guidelines\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -5952,7 +5952,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"permissions\": [\n        \"DASHBOARD_READ\",\n        \"CUSTOMERS_READ\",\n        \"ORDERS_WRITE\"\n    ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -5988,7 +5988,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"pincode\": \"600001\",\n    \"vendorId\": \"VENDOR_UUID_HERE\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -6051,7 +6051,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"deliveryEnabled\": true,\n    \"deliveryRadiusKm\": 15,\n    \"usePincodeRules\": false,\n    \"useRegionRules\": false,\n    \"useCountryRules\": false\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -6113,7 +6113,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"areas\": [\n        {\n            \"pincode\": \"600001\",\n            \"deliveryFee\": 50,\n            \"isExpress\": true\n        },\n        {\n            \"pincode\": \"600002\",\n            \"deliveryFee\": 70,\n            \"isExpress\": false\n        }\n    ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
