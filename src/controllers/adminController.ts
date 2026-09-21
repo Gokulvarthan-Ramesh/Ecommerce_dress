@@ -343,7 +343,8 @@ export class AdminController {
    */
   static async getOrders(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const features = new ApiFeatures(req.query).filter(['id']).sort().paginate();
+      const features = new ApiFeatures
+      (req.query).filter(['id']).sort().paginate();
 
       if (req.query.status) features.query.where.status = req.query.status;
       if (req.query.paymentStatus) features.query.where.paymentStatus = req.query.paymentStatus;
@@ -1374,14 +1375,51 @@ export class AdminController {
    */
   static async getCategories(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const categories = await prisma.category.findMany({
-        include: {
-          parent: { select: { id: true, name: true } },
-          _count: { select: { products: true, children: true } },
-        },
-        orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      const { search, isActive, level, parentId, page = '1', limit = '50' } = req.query;
+      const pageNum = parseInt(page as string, 10) || 1;
+      const limitNum = parseInt(limit as string, 10) || 50;
+      const skip = (pageNum - 1) * limitNum;
+
+      const where: any = {};
+
+      // Filter by name search
+      if (search) {
+        where.name = { contains: search as string, mode: 'insensitive' };
+      }
+
+      // Filter by active status
+      if (isActive !== undefined) {
+        where.isActive = isActive === 'true';
+      }
+
+      // Filter by level (1 = parent, 2 = sub, 3 = sub-sub)
+      if (level) {
+        where.level = parseInt(level as string, 10);
+      }
+
+      // Filter by parent category
+      if (parentId) {
+        where.parentId = parentId === 'null' ? null : parentId as string;
+      }
+
+      const [categories, total] = await Promise.all([
+        prisma.category.findMany({
+          where,
+          include: {
+            parent: { select: { id: true, name: true } },
+            _count: { select: { products: true, children: true } },
+          },
+          orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+          skip,
+          take: limitNum,
+        }),
+        prisma.category.count({ where })
+      ]);
+
+      ApiResponse.success(res, {
+        categories,
+        pagination: { total, page: pageNum, limit: limitNum, totalPages: Math.ceil(total / limitNum) }
       });
-      ApiResponse.success(res, categories);
     } catch (error) {
       next(error);
     }

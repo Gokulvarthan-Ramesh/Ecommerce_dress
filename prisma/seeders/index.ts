@@ -10,3 +10,4 @@ export { seedCarts } from './carts.seeder';
 export { seedOrders } from './orders.seeder';
 export { seedReferrals } from './referrals.seeder';
 export { seedStaff } from './staff.seeder';
+export { seedFinance } from './finance.seeder';
