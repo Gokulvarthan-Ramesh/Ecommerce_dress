@@ -11,6 +11,8 @@ import {
   seedAddresses,
   seedCarts,
   seedOrders,
+  seedReferrals,
+  seedStaff,
 } from './seeders';
 
 
@@ -40,19 +42,21 @@ async function main() {
   // 6. Multi-Shop Stores (Flagship + Vendor Shops)
   await seedShops(prisma);
 
-  // 7. Products, Addresses, Carts, Orders (Dev Only)
+  // 7. Products, Addresses, Carts, Orders, Referrals, Staff (Dev Only)
   if (ENV.NODE_ENV !== 'production') {
     console.log('\n  🧪 Development environment detected: Seeding dummy data...');
     await seedProducts(prisma);
     await seedAddresses(prisma);
     await seedCarts(prisma);
     await seedOrders(prisma);
+    await seedReferrals(prisma);
+    await seedStaff(prisma);
   } else {
     console.log('\n  ⚠️  Production environment detected: Skipping dummy products, orders, carts, and addresses.');
   }
 
   // Summary counts
-  const [settingsCount, usersCount, categoriesCount, offersCount, couponsCount, shopsCount, productsCount, ordersCount] =
+  const [settingsCount, usersCount, categoriesCount, offersCount, couponsCount, shopsCount, productsCount, ordersCount, referralsCount, adminUsersCount] =
     await Promise.all([
       prisma.systemSetting.count(),
       prisma.user.count(),
@@ -62,6 +66,8 @@ async function main() {
       prisma.shop.count(),
       prisma.product.count(),
       prisma.order.count(),
+      prisma.referral.count(),
+      prisma.adminUser.count(),
     ]);
 
   console.log('═══════════════════════════════════════════');
@@ -75,6 +81,8 @@ async function main() {
   console.log(`  🏪 Shops           : ${shopsCount} (Flagship & Vendor Stores)`);
   console.log(`  🛍️  Products        : ${productsCount}`);
   console.log(`  📦 Orders          : ${ordersCount}`);
+  console.log(`  🤝 Referrals       : ${referralsCount}`);
+  console.log(`  👔 Admin Staff     : ${adminUsersCount}`);
 
   console.log('═══════════════════════════════════════════');
   console.log('\n  🔑 Test Credentials (Configured via .env):');

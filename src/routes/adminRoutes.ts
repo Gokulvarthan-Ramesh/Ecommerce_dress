@@ -190,6 +190,7 @@ router.get('/inventory/reservations', AdminController.getInventoryReservations);
 router.get('/inventory/low-stock', AdminController.getLowStockReport);
 
 // Staff Permissions
+router.get('/staff/permissions/master', AdminController.getAvailablePermissions);
 router.get('/staff/:id/permissions', AdminController.getStaffPermissions);
 router.put('/staff/:id/permissions', AdminController.updateStaffPermissions);
 

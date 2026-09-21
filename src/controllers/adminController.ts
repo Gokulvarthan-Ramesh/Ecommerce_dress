@@ -2651,18 +2651,57 @@ export class AdminController {
   }
 
   // --- Staff Permissions Management ---
+  static async getAvailablePermissions(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const permissions = [
+        { slug: 'DASHBOARD_READ', name: 'Dashboard (Read Only)' },
+        { slug: 'DASHBOARD_WRITE', name: 'Dashboard (Full Access)' },
+        { slug: 'CUSTOMERS_READ', name: 'Customers (Read Only)' },
+        { slug: 'CUSTOMERS_WRITE', name: 'Customers (Full Access)' },
+        { slug: 'PRODUCTS_READ', name: 'Products (Read Only)' },
+        { slug: 'PRODUCTS_WRITE', name: 'Products (Full Access)' },
+        { slug: 'ORDERS_READ', name: 'Orders (Read Only)' },
+        { slug: 'ORDERS_WRITE', name: 'Orders (Full Access)' },
+        { slug: 'SHOPS_READ', name: 'Shops (Read Only)' },
+        { slug: 'SHOPS_WRITE', name: 'Shops (Full Access)' },
+        { slug: 'MARKETING_READ', name: 'Marketing (Read Only)' },
+        { slug: 'MARKETING_WRITE', name: 'Marketing (Full Access)' },
+        { slug: 'SETTINGS_READ', name: 'Settings (Read Only)' },
+        { slug: 'SETTINGS_WRITE', name: 'Settings (Full Access)' },
+        { slug: 'ADMIN_ROLES_READ', name: 'Admin Roles (Read Only)' },
+        { slug: 'ADMIN_ROLES_WRITE', name: 'Admin Roles (Full Access)' }
+      ];
+      ApiResponse.success(res, permissions, 'Available permissions retrieved');
+    } catch (error) { next(error); }
+  }
+
   static async getStaffPermissions(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
-      const access = await prisma.adminAccess.findMany({ where: { userId: id } });
-      ApiResponse.success(res, access, 'Staff permissions retrieved');
+      const admin = await prisma.adminUser.findUnique({ where: { id } });
+      if (!admin) {
+        throw new AppError('Staff member not found', 404);
+      }
+      ApiResponse.success(res, admin.permissions, 'Staff permissions retrieved');
     } catch (error) { next(error); }
   }
 
   static async updateStaffPermissions(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      // Stub implementation since features must be managed properly using FeatureMaster
-      ApiResponse.success(res, null, 'Staff permissions updated successfully');
+      const { id } = req.params;
+      const { permissions } = req.body;
+      
+      if (!Array.isArray(permissions)) {
+        throw new AppError('Permissions must be an array of strings', 400);
+      }
+
+      const admin = await prisma.adminUser.update({
+        where: { id },
+        data: { permissions },
+        select: { id: true, email: true, name: true, role: true, permissions: true }
+      });
+
+      ApiResponse.success(res, admin, 'Staff permissions updated successfully');
     } catch (error) { next(error); }
   }
 

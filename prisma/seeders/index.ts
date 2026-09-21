@@ -8,3 +8,5 @@ export { seedProducts } from './products.seeder';
 export { seedAddresses } from './addresses.seeder';
 export { seedCarts } from './carts.seeder';
 export { seedOrders } from './orders.seeder';
+export { seedReferrals } from './referrals.seeder';
+export { seedStaff } from './staff.seeder';
