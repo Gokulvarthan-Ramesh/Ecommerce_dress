@@ -4,4 +4,7 @@ export { seedCategories } from './categories.seeder';
 export { seedOffers } from './offers.seeder';
 export { seedCoupons } from './coupons.seeder';
 export { seedShops } from './shops.seeder';
-
+export { seedProducts } from './products.seeder';
+export { seedAddresses } from './addresses.seeder';
+export { seedCarts } from './carts.seeder';
+export { seedOrders } from './orders.seeder';

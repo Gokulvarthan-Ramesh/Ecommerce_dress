@@ -7,6 +7,10 @@ import {
   seedOffers,
   seedCoupons,
   seedShops,
+  seedProducts,
+  seedAddresses,
+  seedCarts,
+  seedOrders,
 } from './seeders';
 
 
@@ -36,8 +40,19 @@ async function main() {
   // 6. Multi-Shop Stores (Flagship + Vendor Shops)
   await seedShops(prisma);
 
+  // 7. Products, Addresses, Carts, Orders (Dev Only)
+  if (ENV.NODE_ENV !== 'production') {
+    console.log('\n  🧪 Development environment detected: Seeding dummy data...');
+    await seedProducts(prisma);
+    await seedAddresses(prisma);
+    await seedCarts(prisma);
+    await seedOrders(prisma);
+  } else {
+    console.log('\n  ⚠️  Production environment detected: Skipping dummy products, orders, carts, and addresses.');
+  }
+
   // Summary counts
-  const [settingsCount, usersCount, categoriesCount, offersCount, couponsCount, shopsCount] =
+  const [settingsCount, usersCount, categoriesCount, offersCount, couponsCount, shopsCount, productsCount, ordersCount] =
     await Promise.all([
       prisma.systemSetting.count(),
       prisma.user.count(),
@@ -45,6 +60,8 @@ async function main() {
       prisma.offer.count(),
       prisma.coupon.count(),
       prisma.shop.count(),
+      prisma.product.count(),
+      prisma.order.count(),
     ]);
 
   console.log('═══════════════════════════════════════════');
@@ -56,6 +73,8 @@ async function main() {
   console.log(`  🏷️  Offers          : ${offersCount}`);
   console.log(`  🎟️  Coupons         : ${couponsCount}`);
   console.log(`  🏪 Shops           : ${shopsCount} (Flagship & Vendor Stores)`);
+  console.log(`  🛍️  Products        : ${productsCount}`);
+  console.log(`  📦 Orders          : ${ordersCount}`);
 
   console.log('═══════════════════════════════════════════');
   console.log('\n  🔑 Test Credentials (Configured via .env):');

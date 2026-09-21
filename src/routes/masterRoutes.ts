@@ -5,6 +5,14 @@ import { requireAdmin } from '../middleware/adminGuard';
 
 const router = Router();
 
+// Get list of all allowed master types
+router.get(
+  '/',
+  authenticateToken,
+  requireAdmin,
+  MasterController.getMasterTypes
+);
+
 // Master type is a URL param: /api/v1/admin/masters/:masterType
 router.get(
   '/:masterType',
@@ -28,6 +36,13 @@ router.post(
 );
 
 router.patch(
+  '/:masterType/:id',
+  authenticateToken,
+  requireAdmin,
+  MasterController.update
+);
+
+router.put(
   '/:masterType/:id',
   authenticateToken,
   requireAdmin,

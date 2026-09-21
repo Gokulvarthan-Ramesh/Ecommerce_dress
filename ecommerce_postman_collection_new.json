@@ -3443,6 +3443,32 @@
           "name": "Masters",
           "item": [
             {
+              "name": "Get Admin Masters",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/masters",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "masters"
+                  ],
+                  "variable": []
+                }
+              }
+            },
+            {
               "name": "Get Admin Masters By Param",
               "request": {
                 "method": "GET",
@@ -3511,7 +3537,7 @@
                 },
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n\n}",
+                  "raw": "{\n  \"code\": \"NEW_MASTER_CODE\",\n  \"name\": \"New Master Item Name\",\n  \"description\": \"Optional description here\",\n  \"isActive\": true\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -3599,7 +3625,58 @@
                 },
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n\n}",
+                  "raw": "{\n  \"code\": \"UPDATED_CODE\",\n  \"name\": \"Updated Name\",\n  \"description\": \"Updated description\",\n  \"isActive\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "Update Admin Masters By Param By Id",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/masters/{{masterType}}/{{id}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "masters",
+                    "{{masterType}}",
+                    "{{id}}"
+                  ],
+                  "variable": [
+                    {
+                      "key": "masterType",
+                      "value": ""
+                    },
+                    {
+                      "key": "id",
+                      "value": ""
+                    }
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"code\": \"UPDATED_CODE\",\n  \"name\": \"Updated Name\",\n  \"description\": \"Updated description\",\n  \"isActive\": false\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -12278,6 +12355,31 @@
               "name": "Masters",
               "item": [
                 {
+                  "name": "Get Api Admin Masters",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{adminToken}}",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/admin/masters",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "admin",
+                        "masters"
+                      ],
+                      "variable": []
+                    }
+                  }
+                },
+                {
                   "name": "Get Api Admin Masters By Param",
                   "request": {
                     "method": "GET",
@@ -12344,7 +12446,7 @@
                     },
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n\n}",
+                      "raw": "{\n  \"code\": \"NEW_MASTER_CODE\",\n  \"name\": \"New Master Item Name\",\n  \"description\": \"Optional description here\",\n  \"isActive\": true\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -12430,7 +12532,57 @@
                     },
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n\n}",
+                      "raw": "{\n  \"code\": \"UPDATED_CODE\",\n  \"name\": \"Updated Name\",\n  \"description\": \"Updated description\",\n  \"isActive\": false\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "Update Api Admin Masters By Param By Id",
+                  "request": {
+                    "method": "PUT",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{adminToken}}",
+                        "type": "text"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/admin/masters/{{masterType}}/{{id}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "admin",
+                        "masters",
+                        "{{masterType}}",
+                        "{{id}}"
+                      ],
+                      "variable": [
+                        {
+                          "key": "masterType",
+                          "value": ""
+                        },
+                        {
+                          "key": "id",
+                          "value": ""
+                        }
+                      ]
+                    },
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"code\": \"UPDATED_CODE\",\n  \"name\": \"Updated Name\",\n  \"description\": \"Updated description\",\n  \"isActive\": false\n}",
                       "options": {
                         "raw": {
                           "language": "json"

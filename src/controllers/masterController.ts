@@ -23,6 +23,14 @@ const prismaModelMapping: Record<AllowedMaster, 'promoCodeDistributionType' | 'p
 
 export class MasterController {
   
+  static getMasterTypes(req: Request, res: Response, next: NextFunction) {
+    try {
+      ApiResponse.success(res, allowedMasters);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async getAll(req: Request, res: Response, next: NextFunction) {
     try {
       const { masterType } = req.params;
