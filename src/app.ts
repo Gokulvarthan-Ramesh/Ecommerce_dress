@@ -14,8 +14,11 @@ import path from 'path';
 // Security Headers (allow Cashfree JS SDK and modal iframe)
 app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
 
-// Serve test-payment playground directly
+// Serve test-payment playground directly (Disabled in production for security)
 app.get(['/test-payment', '/test-payment.html'], (_req: Request, res: Response) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(403).json({ success: false, message: 'Test playground is disabled in production.' });
+  }
   res.sendFile(path.join(process.cwd(), 'test-payment.html'));
 });
 
@@ -54,6 +57,7 @@ app.get('/health', (_req: Request, res: Response) => {
 
 // API Routes
 app.use('/api/v1', apiRouter);
+app.use('/api', apiRouter);
 
 // 404 Catch-All Handler
 app.use((req: Request, res: Response) => {

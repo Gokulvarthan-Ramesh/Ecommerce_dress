@@ -1,15 +1,17 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+const isProd = process.env.NODE_ENV === 'production';
+
 export const ENV = {
   PORT: process.env.PORT || '5000',
   NODE_ENV: process.env.NODE_ENV || 'development',
   API_BASE_URL: process.env.API_BASE_URL || 'http://localhost:5000',
   DATABASE_URL: process.env.DATABASE_URL || '',
-  JWT_SECRET: process.env.JWT_SECRET || 'fallback_secret_change_me',
+  JWT_SECRET: process.env.JWT_SECRET || (isProd ? '' : 'fallback_secret_change_me'),
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
   BCRYPT_SALT_ROUNDS: parseInt(process.env.BCRYPT_SALT_ROUNDS || '10', 10),
-  SHOW_DEV_OTP: process.env.SHOW_DEV_OTP === 'true' || process.env.NODE_ENV === 'development',
+  SHOW_DEV_OTP: process.env.SHOW_DEV_OTP === 'true' || (!isProd),
 
   CASHFREE: {
     APP_ID: process.env.CASHFREE_APP_ID || '',
@@ -42,11 +44,11 @@ export const ENV = {
   },
   SEED: {
     ADMIN_EMAIL: process.env.INITIAL_ADMIN_EMAIL || 'decodexfashionwear@gmail.com',
-    ADMIN_PASSWORD: process.env.INITIAL_ADMIN_PASSWORD || 'Admin@12345',
+    ADMIN_PASSWORD: process.env.INITIAL_ADMIN_PASSWORD || (isProd ? '' : 'Admin@12345'),
     ADMIN_NAME: process.env.INITIAL_ADMIN_NAME || 'DecodeX Administrator',
     ADMIN_PHONE: process.env.INITIAL_ADMIN_PHONE || '9999999999',
     CUSTOMER_EMAIL: process.env.INITIAL_CUSTOMER_EMAIL || 'customer@test.com',
-    CUSTOMER_PASSWORD: process.env.INITIAL_CUSTOMER_PASSWORD || 'Test@12345',
+    CUSTOMER_PASSWORD: process.env.INITIAL_CUSTOMER_PASSWORD || (isProd ? '' : 'Test@12345'),
     CUSTOMER_PHONE: process.env.INITIAL_CUSTOMER_PHONE || '9876543210',
   },
 };

@@ -47,8 +47,8 @@ export class OrderController {
   static async getMyOrders(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = req.user!.id;
-      const orders = await OrderService.getMyOrders(userId);
-      ApiResponse.success(res, orders);
+      const result = await OrderService.getMyOrders(userId, req.query);
+      ApiResponse.paginated(res, result.items, result.meta);
     } catch (error) {
       next(error);
     }

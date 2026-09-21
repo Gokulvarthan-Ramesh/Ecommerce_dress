@@ -8,6 +8,7 @@ import { SystemSettingService } from './systemSettingService';
 import { ServiceabilityService } from './serviceabilityService';
 import { TaxService } from './taxService';
 import { DeliveryService } from './deliveryService';
+import { PromoService } from '../modules/promo/promo.service';
 import { OrderStatus, PaymentMethod, PaymentStatus, WalletTxCategory, SubOrderStatus } from '@prisma/client';
 
 
@@ -16,7 +17,8 @@ export class CheckoutService {
    * Preview checkout summary (Steps 1-15) without creating order
    */
   static async previewCheckout(userId: string, body: any) {
-    const { couponCode, useWallet, shippingAddress } = body;
+    const { couponCode, promoCode, useWallet, shippingAddress } = body;
+    const rawCode = (promoCode || couponCode)?.toString().trim();
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new AppError('User not found', 404);
@@ -83,44 +85,64 @@ export class CheckoutService {
     const firstOrderDiscount = offerResult.discountAmount;
     const appliedOfferId = offerResult.appliedOfferId;
 
-    // 10. Validate coupon
+    // 10. Validate Promo Code or Coupon
+    let promoDiscount = 0;
+    let appliedPromoCodeId: string | null = null;
+    let appliedPromoCodeStr: string | null = null;
     let couponDiscount = 0;
     let appliedCouponId: string | null = null;
-    if (couponCode) {
-      const coupon = await prisma.coupon.findUnique({ where: { code: couponCode } });
-      if (!coupon || !coupon.isActive) throw new AppError('Invalid or expired coupon');
-      if (coupon.expiresAt && coupon.expiresAt < new Date()) throw new AppError('Coupon has expired');
-      let eligibleSubtotal = subtotal;
-      if (coupon.shopId) {
-        eligibleSubtotal = orderItemsData
-          .filter(item => item.shopId === coupon.shopId)
-          .reduce((sum, item) => sum + item.totalPrice, 0);
-          
-        if (eligibleSubtotal === 0) {
-          throw new AppError('This coupon is not valid for the items in your cart');
-        }
-      }
+    let isFreeDelivery = false;
 
-      if (eligibleSubtotal < Number(coupon.minOrderAmount)) throw new AppError(`Minimum order of ₹${coupon.minOrderAmount} required for this coupon`);
-      
-      const userUsages = await prisma.couponUsage.count({ where: { couponId: coupon.id, userId } });
-      if (userUsages >= coupon.perUserLimit) throw new AppError('You have reached the usage limit for this coupon');
-      if (coupon.usageLimit && coupon.timesUsed >= coupon.usageLimit) throw new AppError('Coupon usage limit reached');
+    if (rawCode) {
+      // Check if it matches a PromoCode first
+      const foundPromo = await prisma.promoCode.findUnique({
+        where: { code: rawCode.toUpperCase() },
+        include: { campaign: true },
+      });
 
-      if (coupon.discountType === 'PERCENTAGE') {
-        couponDiscount = (eligibleSubtotal * Number(coupon.discountValue)) / 100;
-        if (coupon.maxDiscount && Number(coupon.maxDiscount) > 0) {
-          couponDiscount = Math.min(couponDiscount, Number(coupon.maxDiscount));
-        }
+      if (foundPromo) {
+        const promoResult = await PromoService.validatePromo(userId, rawCode);
+        promoDiscount = promoResult.discount;
+        appliedPromoCodeId = promoResult.promoCodeId;
+        appliedPromoCodeStr = promoResult.code;
+        isFreeDelivery = promoResult.isFreeDelivery;
       } else {
-        couponDiscount = Math.min(Number(coupon.discountValue), eligibleSubtotal);
+        // Fallback to legacy Coupon
+        const coupon = await prisma.coupon.findUnique({ where: { code: rawCode } });
+        if (!coupon || !coupon.isActive) throw new AppError('Invalid or expired coupon/promo code');
+        if (coupon.expiresAt && coupon.expiresAt < new Date()) throw new AppError('Coupon has expired');
+        let eligibleSubtotal = subtotal;
+        if (coupon.shopId) {
+          eligibleSubtotal = orderItemsData
+            .filter(item => item.shopId === coupon.shopId)
+            .reduce((sum, item) => sum + item.totalPrice, 0);
+            
+          if (eligibleSubtotal === 0) {
+            throw new AppError('This coupon is not valid for the items in your cart');
+          }
+        }
+
+        if (eligibleSubtotal < Number(coupon.minOrderAmount)) throw new AppError(`Minimum order of ₹${coupon.minOrderAmount} required for this coupon`);
+        
+        const userUsages = await prisma.couponUsage.count({ where: { couponId: coupon.id, userId } });
+        if (userUsages >= coupon.perUserLimit) throw new AppError('You have reached the usage limit for this coupon');
+        if (coupon.usageLimit && coupon.timesUsed >= coupon.usageLimit) throw new AppError('Coupon usage limit reached');
+
+        if (coupon.discountType === 'PERCENTAGE') {
+          couponDiscount = (eligibleSubtotal * Number(coupon.discountValue)) / 100;
+          if (coupon.maxDiscount && Number(coupon.maxDiscount) > 0) {
+            couponDiscount = Math.min(couponDiscount, Number(coupon.maxDiscount));
+          }
+        } else {
+          couponDiscount = Math.min(Number(coupon.discountValue), eligibleSubtotal);
+        }
+        
+        appliedCouponId = coupon.id;
       }
-      
-      appliedCouponId = coupon.id;
     }
 
     // 11. Calculate discount
-    const totalPromotionalDiscount = firstOrderDiscount + couponDiscount;
+    const totalPromotionalDiscount = firstOrderDiscount + promoDiscount + couponDiscount;
     const discountedSubtotal = Math.max(0, subtotal - totalPromotionalDiscount);
 
     // 12. Calculate Taxes
@@ -128,7 +150,12 @@ export class CheckoutService {
 
     // 13. Calculate delivery dynamically
     const deliveryResult = await DeliveryService.calculateDeliveryCharges(orderItemsData, shippingAddress);
-    const deliveryCharge = deliveryResult.totalDeliveryFee;
+    let deliveryCharge = deliveryResult.totalDeliveryFee;
+    
+    if (isFreeDelivery) {
+      deliveryCharge = 0;
+      deliveryResult.totalDeliveryFee = 0; // Or indicate it was waived
+    }
 
     let totalAmount = discountedSubtotal + taxBreakdown.totalTax + deliveryCharge; // Final payable before wallet
 
@@ -152,6 +179,7 @@ export class CheckoutService {
     return {
       subtotal,
       firstOrderDiscount,
+      promoDiscount,
       couponDiscount,
       taxBreakdown,
       deliveryResult,
@@ -160,6 +188,8 @@ export class CheckoutService {
       walletAmount,
       paymentAmount,
       appliedOfferId,
+      appliedPromoCodeId,
+      appliedPromoCodeStr,
       appliedCouponId,
       orderItemsData,
       cartId: cart.id,
@@ -175,6 +205,7 @@ export class CheckoutService {
     const {
       subtotal,
       firstOrderDiscount,
+      promoDiscount,
       couponDiscount,
       taxBreakdown,
       deliveryResult,
@@ -183,6 +214,8 @@ export class CheckoutService {
       walletAmount,
       paymentAmount,
       appliedOfferId,
+      appliedPromoCodeId,
+      appliedPromoCodeStr,
       appliedCouponId,
       orderItemsData,
       cartId,
@@ -301,14 +334,17 @@ export class CheckoutService {
           subtotal,
           discount: firstOrderDiscount,
           couponDiscount,
+          promoDiscount,
           walletAmount,
           deliveryCharge,
           totalAmount,
+          payableAmount: paymentAmount,
           paymentAmount,
           paymentMethod: isCOD ? PaymentMethod.COD : PaymentMethod.CASHFREE,
           paymentStatus: isFreeOrder ? PaymentStatus.SUCCESS : PaymentStatus.PENDING,
           addressSnapshot: normalizedAddress,
           appliedOfferId,
+          appliedPromoCodeId,
           appliedCouponId,
         },
       });
@@ -336,6 +372,12 @@ export class CheckoutService {
         const shopPayoutAmount = Math.max(0, shopSubtotal - commissionAmount + shopShippingFee);
         const subOrderNumber = `${orderNumber}-S${subCounter++}`;
 
+        // Proportional Promo & Coupon Allocation across Multi-Vendor SubOrders
+        const totalPromoOrCoupon = promoDiscount + couponDiscount;
+        const shopPromoAllocation = subtotal > 0
+          ? Math.round((shopSubtotal / subtotal) * totalPromoOrCoupon * 100) / 100
+          : 0;
+
         let subOrder = null;
         if (shop) {
           subOrder = await tx.subOrder.create({
@@ -345,6 +387,7 @@ export class CheckoutService {
               shopId: shop.id,
               status: isCOD || isFreeOrder ? SubOrderStatus.CONFIRMED : SubOrderStatus.CONFIRMED,
               subtotal: shopSubtotal,
+              promoDiscountAllocation: shopPromoAllocation,
               shippingFee: shopShippingFee,
               commissionRate: shopCommissionRate,
               commissionAmount,
@@ -422,7 +465,9 @@ export class CheckoutService {
           await tx.offer.update({ where: { id: appliedOfferId }, data: { timesUsed: { increment: 1 } } });
         }
 
-        if (appliedCouponId) {
+        if (appliedPromoCodeStr) {
+          await PromoService.consumePromo(tx, userId, appliedPromoCodeStr, subtotal, newOrder.id);
+        } else if (appliedCouponId) {
           await tx.couponUsage.create({ data: { couponId: appliedCouponId, userId, orderId: newOrder.id } });
           await tx.coupon.update({ where: { id: appliedCouponId }, data: { timesUsed: { increment: 1 } } });
         }

@@ -14,6 +14,8 @@ import { ConfigController } from '../controllers/configController';
 import reviewRoutes from './reviewRoutes';
 import wishlistRoutes from './wishlistRoutes';
 import deliveryRoutes from './deliveryRoutes';
+import masterRoutes from './masterRoutes';
+import promoRoutes from '../modules/promo/promo.routes';
 
 import addressRoutes from './addressRoutes';
 import homeRoutes from './homeRoutes';
@@ -69,9 +71,11 @@ router.use('/wallet', walletRoutes);
 router.use('/referrals', referralRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/webhooks', webhookRoutes);
+router.use('/admin/masters', masterRoutes);
 router.use('/admin', adminRoutes);
 router.use('/reviews', reviewRoutes);
 router.use('/wishlist', wishlistRoutes);
 router.use('/delivery', deliveryRoutes);
+router.use(promoRoutes);
 
 export default router;

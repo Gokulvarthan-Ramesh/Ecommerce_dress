@@ -8,6 +8,7 @@ import { NotificationService } from './notificationService';
 import { SystemSettingService } from './systemSettingService';
 import { OrderStatus, PaymentMethod, PaymentStatus, WalletTxCategory, WalletTxType, SubOrderStatus } from '@prisma/client';
 import { CartRepository } from '../repositories/CartRepository';
+import { ApiFeatures } from '../utils/ApiFeatures';
 
 export class OrderService {
   static async processCashfreeWebhook(payload: any, webhookId?: string) {
@@ -124,6 +125,27 @@ export class OrderService {
           await tx.couponUsage.create({ data: { couponId: order.appliedCouponId, userId: order.userId, orderId: order.id } });
           await tx.coupon.update({ where: { id: order.appliedCouponId }, data: { timesUsed: { increment: 1 } } });
         }
+
+        if (order.appliedPromoCodeId) {
+          const promo = await tx.promoCode.findUnique({ where: { id: order.appliedPromoCodeId } });
+          if (promo) {
+            await tx.$executeRaw`
+              UPDATE promo_codes
+              SET "usageCount" = "usageCount" + 1, "updatedAt" = NOW()
+              WHERE id = ${order.appliedPromoCodeId}
+            `;
+            await tx.promoCodeUsage.create({
+              data: {
+                promoCodeId: promo.id,
+                campaignId: promo.campaignId,
+                userId: order.userId,
+                orderId: order.id,
+                discountAmount: order.promoDiscount,
+                orderSubtotal: order.subtotal,
+              },
+            });
+          }
+        }
       });
 
       // Fire notifications (outside transaction — best-effort)
@@ -155,40 +177,51 @@ export class OrderService {
   }
 
 
-  static async getMyOrders(userId: string) {
-    return prisma.order.findMany({
-      where: { userId },
-      include: {
-        orderItems: {
-          include: {
-            variant: {
-              select: {
-                product: {
-                  select: {
-                    images: true,
-                    slug: true,
+  static async getMyOrders(userId: string, queryString: any) {
+    const features = new ApiFeatures(queryString).filter(['id', 'status']).sort().paginate();
+    features.query.where.userId = userId;
+
+    const [total, orders] = await Promise.all([
+      prisma.order.count({ where: features.query.where }),
+      prisma.order.findMany({
+        ...features.query,
+        include: {
+          orderItems: {
+            include: {
+              variant: {
+                select: {
+                  product: {
+                    select: {
+                      images: true,
+                      slug: true,
+                    },
                   },
                 },
               },
             },
           },
-        },
-        payments: {
-          select: {
-            status: true,
-            amount: true,
-            method: true,
+          payments: {
+            select: {
+              status: true,
+              amount: true,
+              method: true,
+            },
+          },
+          subOrders: {
+            include: {
+              shop: { select: { name: true, slug: true } },
+              items: true,
+            }
           },
         },
-        subOrders: {
-          include: {
-            shop: { select: { name: true, slug: true } },
-            items: true,
-          }
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+      })
+    ]);
+
+    const limitParam = queryString.limit === 'all' || queryString.pagination === 'false' ? 'all' : parseInt(queryString.limit || '10', 10);
+    return {
+      items: orders,
+      meta: ApiFeatures.getMeta(total, parseInt(queryString.page || 1, 10), limitParam as any)
+    };
   }
 
   static async verifyAndSyncCashfreePayment(orderId: string) {
@@ -249,6 +282,27 @@ export class OrderService {
             if (order.appliedCouponId) {
               await tx.couponUsage.create({ data: { couponId: order.appliedCouponId, userId: order.userId, orderId: order.id } });
               await tx.coupon.update({ where: { id: order.appliedCouponId }, data: { timesUsed: { increment: 1 } } });
+            }
+
+            if (order.appliedPromoCodeId) {
+              const promo = await tx.promoCode.findUnique({ where: { id: order.appliedPromoCodeId } });
+              if (promo) {
+                await tx.$executeRaw`
+                  UPDATE promo_codes
+                  SET "usageCount" = "usageCount" + 1, "updatedAt" = NOW()
+                  WHERE id = ${order.appliedPromoCodeId}
+                `;
+                await tx.promoCodeUsage.create({
+                  data: {
+                    promoCodeId: promo.id,
+                    campaignId: promo.campaignId,
+                    userId: order.userId,
+                    orderId: order.id,
+                    discountAmount: order.promoDiscount,
+                    orderSubtotal: order.subtotal,
+                  },
+                });
+              }
             }
 
             // Consume Inventory Reservations

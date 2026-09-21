@@ -3,6 +3,7 @@ import { prisma } from '../config/db';
 import { AppError } from '../middleware/errorHandler';
 import { SystemSettingService } from '../services/systemSettingService';
 import { WalletService } from '../services/walletService';
+import { ApiFeatures } from '../utils/ApiFeatures';
 import { CashfreeService } from '../services/cashfreeService';
 import { ReferralService } from '../services/referralService';
 import { NotificationService } from '../services/notificationService';
@@ -336,19 +337,15 @@ export class AdminController {
    */
   static async getOrders(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { status, paymentStatus, page = '1', limit = '20' } = req.query;
+      const features = new ApiFeatures(req.query).filter(['id']).sort().paginate();
 
-      const pageNum = parseInt(page as string, 10) || 1;
-      const limitNum = parseInt(limit as string, 10) || 20;
-      const skip = (pageNum - 1) * limitNum;
-
-      const where: any = {};
-      if (status) where.status = status as OrderStatus;
-      if (paymentStatus) where.paymentStatus = paymentStatus as PaymentStatus;
-
-      const [orders, total] = await Promise.all([
+      if (req.query.status) features.query.where.status = req.query.status;
+      if (req.query.paymentStatus) features.query.where.paymentStatus = req.query.paymentStatus;
+      
+      const [total, orders] = await Promise.all([
+        prisma.order.count({ where: features.query.where }),
         prisma.order.findMany({
-          where,
+          ...features.query,
           include: {
             user: { select: { id: true, name: true, email: true, phone: true } },
             orderItems: true,
@@ -360,17 +357,12 @@ export class AdminController {
               }
             }
           },
-          orderBy: { createdAt: 'desc' },
-          skip,
-          take: limitNum,
         }),
-        prisma.order.count({ where }),
       ]);
 
-      ApiResponse.success(res, {
-        orders,
-        pagination: { total, page: pageNum, limit: limitNum, totalPages: Math.ceil(total / limitNum) },
-      });
+      const limitParam = req.query.limit === 'all' || req.query.pagination === 'false' ? 'all' : parseInt(req.query.limit as string || '20', 10);
+      const meta = ApiFeatures.getMeta(total, parseInt(req.query.page as string || '1', 10), limitParam as any);
+      ApiResponse.paginated(res, orders, meta);
     } catch (error) {
       next(error);
     }
