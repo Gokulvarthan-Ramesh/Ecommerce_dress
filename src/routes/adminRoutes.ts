@@ -30,6 +30,13 @@ router.get('/customers/:id/cart', AdminController.getCustomerCart);
 router.get('/customers/:id/wishlist', AdminController.getCustomerWishlist);
 router.post('/customers/:id/orders', AdminController.adminCreateOrder);
 
+// 2.5 Vendor Management (CRUD)
+router.get('/vendors', AdminController.getVendors);
+router.get('/vendors/:id', AdminController.getVendorDetails);
+router.post('/vendors', AdminController.createVendor);
+router.put('/vendors/:id', AdminController.updateVendor);
+router.patch('/vendors/:id/status', AdminController.toggleVendorStatus);
+
 // 3. Category Management (CRUD)
 router.get('/categories', AdminController.getCategories);
 router.get('/categories/:id', AdminController.getCategoryById);

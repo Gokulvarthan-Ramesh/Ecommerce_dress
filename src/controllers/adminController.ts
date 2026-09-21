@@ -32,6 +32,8 @@ export class AdminController {
         ordersByStatus,
         recentOrders,
         todayRevenueSum,
+        totalVendors,
+        totalShops,
       ] = await Promise.all([
         prisma.order.count(),
         prisma.order.count({ where: { createdAt: { gte: today } } }),
@@ -54,6 +56,8 @@ export class AdminController {
           },
           _sum: { paymentAmount: true },
         }),
+        prisma.user.count({ where: { role: 'VENDOR' } }),
+        prisma.shop.count(),
       ]);
 
       const data = {
@@ -61,6 +65,8 @@ export class AdminController {
         totalOrders,
         todayOrders,
         totalCustomers,
+        totalVendors,
+        totalShops,
         totalProducts,
         lowStock: lowStockVariants,
         pendingOrders: ordersByStatus.find(o => o.status === OrderStatus.PENDING_PAYMENT)?._count.id || 0,
@@ -2281,6 +2287,131 @@ export class AdminController {
       const { CheckoutService } = await import('../services/checkoutService');
       const order = await CheckoutService.processCheckout(req.params.id, req.body);
       ApiResponse.success(res, order, 'Order created on behalf of customer', 201);
+    } catch (error) { next(error); }
+  }
+
+  // --- Vendor Management ---
+  static async getVendors(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const features = new ApiFeatures(req.query).filter(['id']).sort().paginate();
+      features.query.where.role = 'VENDOR';
+
+      const [total, vendors] = await Promise.all([
+        prisma.user.count({ where: features.query.where }),
+        prisma.user.findMany({
+          ...features.query,
+          include: {
+            ownedShops: { select: { id: true, name: true, slug: true, isActive: true } }
+          }
+        }),
+      ]);
+
+      const limitParam = req.query.limit === 'all' || req.query.pagination === 'false' ? 'all' : parseInt(req.query.limit as string || '20', 10);
+      const meta = ApiFeatures.getMeta(total, parseInt(req.query.page as string || '1', 10), limitParam as any);
+      ApiResponse.paginated(res, vendors, meta);
+    } catch (error) { next(error); }
+  }
+
+  static async getVendorDetails(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const vendor = await prisma.user.findUnique({
+        where: { id, role: 'VENDOR' },
+        include: {
+          wallet: true,
+          ownedShops: true,
+        },
+      });
+
+      if (!vendor) throw new AppError('Vendor not found', 404);
+      ApiResponse.success(res, vendor);
+    } catch (error) { next(error); }
+  }
+
+  static async createVendor(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { name, phone, email, password } = req.body;
+      if (!name || !phone || !password) {
+        throw new AppError('Name, phone, and password are required', 400);
+      }
+
+      const cleanPhone = phone.replace(/[^0-9]/g, '').slice(-10);
+      const existing = await prisma.user.findFirst({
+        where: { OR: [{ phone: cleanPhone }, ...(email ? [{ email: email.trim() }] : [])] },
+      });
+
+      if (existing) {
+        throw new AppError('User with this phone or email already exists', 400);
+      }
+
+      const bcrypt = require('bcryptjs');
+      const salt = await bcrypt.genSalt(10);
+      const passwordHash = await bcrypt.hash(password, salt);
+
+      const crypto = require('crypto');
+      const referralCode = `VND${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+
+      const vendor = await prisma.user.create({
+        data: {
+          name: name.trim(),
+          phone: cleanPhone,
+          email: email ? email.trim() : null,
+          passwordHash,
+          role: 'VENDOR',
+          referralCode,
+          wallet: { create: { balance: 0.0 } },
+        },
+      });
+
+      ApiResponse.success(res, vendor, 'Vendor created successfully', 201);
+    } catch (error) { next(error); }
+  }
+
+  static async updateVendor(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { name, email, phone, password, isActive } = req.body;
+      
+      const vendor = await prisma.user.findUnique({ where: { id, role: 'VENDOR' } });
+      if (!vendor) throw new AppError('Vendor not found', 404);
+
+      const dataToUpdate: any = {};
+      if (name !== undefined) dataToUpdate.name = name.trim();
+      if (email !== undefined) dataToUpdate.email = email.trim();
+      if (phone !== undefined) dataToUpdate.phone = phone.replace(/[^0-9]/g, '').slice(-10);
+      if (isActive !== undefined) dataToUpdate.isActive = isActive;
+
+      if (password) {
+        const bcrypt = require('bcryptjs');
+        const salt = await bcrypt.genSalt(10);
+        dataToUpdate.passwordHash = await bcrypt.hash(password, salt);
+      }
+
+      const updated = await prisma.user.update({
+        where: { id },
+        data: dataToUpdate,
+      });
+
+      ApiResponse.success(res, updated, 'Vendor updated successfully');
+    } catch (error) { next(error); }
+  }
+
+  static async toggleVendorStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { isActive } = req.body;
+      
+      const vendor = await prisma.user.findUnique({ where: { id, role: 'VENDOR' } });
+      if (!vendor) throw new AppError('Vendor not found', 404);
+
+      const newStatus = typeof isActive === 'boolean' ? isActive : !vendor.isActive;
+      
+      const updated = await prisma.user.update({
+        where: { id },
+        data: { isActive: newStatus },
+      });
+
+      ApiResponse.success(res, updated, `Vendor is now ${newStatus ? 'ACTIVE' : 'INACTIVE'}`);
     } catch (error) { next(error); }
   }
 
