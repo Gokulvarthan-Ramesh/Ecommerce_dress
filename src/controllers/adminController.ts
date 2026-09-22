@@ -1049,7 +1049,23 @@ export class AdminController {
    */
   static async saveBanner(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { id, title, image, imageUrl, targetType = 'NONE', targetValue, sortOrder = 0, isActive = true } = req.body;
+      const {
+        id, title, subtitle, description, image, imageUrl,
+        // Colors & styling
+        backgroundColor, textColor, accentColor,
+        gradientStart, gradientEnd, gradientAngle,
+        overlayOpacity, overlayColor,
+        // CTA
+        ctaText, ctaTextColor, ctaBgColor, ctaLink,
+        // Badge
+        badgeText, badgeBgColor, badgeTextColor,
+        // Targeting
+        bannerType = 'HERO', targetType = 'NONE', targetValue,
+        // Scheduling
+        startDate, endDate,
+        // Ordering
+        sortOrder = 0, isActive = true,
+      } = req.body;
 
       const rawImg = imageUrl || image;
       if (!title || !rawImg) {
@@ -1058,24 +1074,39 @@ export class AdminController {
 
       const formattedImage = GoogleDriveService.formatToDirectImageUrl(rawImg);
 
+      const bannerData = {
+        title,
+        subtitle: subtitle || null,
+        description: description || null,
+        imageUrl: formattedImage,
+        backgroundColor: backgroundColor || null,
+        textColor: textColor || null,
+        accentColor: accentColor || null,
+        gradientStart: gradientStart || null,
+        gradientEnd: gradientEnd || null,
+        gradientAngle: gradientAngle !== undefined ? Number(gradientAngle) : 135,
+        overlayOpacity: overlayOpacity !== undefined ? Number(overlayOpacity) : 0,
+        overlayColor: overlayColor || null,
+        ctaText: ctaText || null,
+        ctaTextColor: ctaTextColor || null,
+        ctaBgColor: ctaBgColor || null,
+        ctaLink: ctaLink || null,
+        badgeText: badgeText || null,
+        badgeBgColor: badgeBgColor || null,
+        badgeTextColor: badgeTextColor || null,
+        bannerType: bannerType || 'HERO',
+        targetType,
+        targetValue: targetValue || null,
+        startDate: startDate ? new Date(startDate) : null,
+        endDate: endDate ? new Date(endDate) : null,
+        sortOrder: Number(sortOrder),
+        isActive,
+      };
+
       const banner = await db.banner.upsert({
         where: { id: id || 'new-banner' },
-        update: {
-          title,
-          imageUrl: formattedImage,
-          targetType,
-          targetValue,
-          sortOrder: Number(sortOrder),
-          isActive,
-        },
-        create: {
-          title,
-          imageUrl: formattedImage,
-          targetType,
-          targetValue,
-          sortOrder: Number(sortOrder),
-          isActive,
-        },
+        update: bannerData,
+        create: bannerData,
       });
 
       ApiResponse.success(res, banner, 'Banner saved successfully');
@@ -1730,7 +1761,17 @@ export class AdminController {
   static async updateBanner(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
-      const { title, image, imageUrl, targetType, targetValue, sortOrder, isActive } = req.body;
+      const {
+        title, subtitle, description, image, imageUrl,
+        backgroundColor, textColor, accentColor,
+        gradientStart, gradientEnd, gradientAngle,
+        overlayOpacity, overlayColor,
+        ctaText, ctaTextColor, ctaBgColor, ctaLink,
+        badgeText, badgeBgColor, badgeTextColor,
+        bannerType, targetType, targetValue,
+        startDate, endDate,
+        sortOrder, isActive,
+      } = req.body;
 
       const existing = await db.banner.findUnique({ where: { id } });
       if (!existing) throw new AppError('Banner not found', 404);
@@ -1738,16 +1779,42 @@ export class AdminController {
       const rawImg = imageUrl || image;
       const formattedImage = rawImg ? GoogleDriveService.formatToDirectImageUrl(rawImg) : undefined;
 
+      const data: Record<string, any> = {};
+      // Only include fields that were actually sent in the request body
+      const set = (key: string, val: any, transform?: (v: any) => any) => {
+        if (val !== undefined) data[key] = transform ? transform(val) : val;
+      };
+
+      set('title', title);
+      set('subtitle', subtitle);
+      set('description', description);
+      if (formattedImage !== undefined) data.imageUrl = formattedImage;
+      set('backgroundColor', backgroundColor);
+      set('textColor', textColor);
+      set('accentColor', accentColor);
+      set('gradientStart', gradientStart);
+      set('gradientEnd', gradientEnd);
+      set('gradientAngle', gradientAngle, Number);
+      set('overlayOpacity', overlayOpacity, Number);
+      set('overlayColor', overlayColor);
+      set('ctaText', ctaText);
+      set('ctaTextColor', ctaTextColor);
+      set('ctaBgColor', ctaBgColor);
+      set('ctaLink', ctaLink);
+      set('badgeText', badgeText);
+      set('badgeBgColor', badgeBgColor);
+      set('badgeTextColor', badgeTextColor);
+      set('bannerType', bannerType);
+      set('targetType', targetType);
+      set('targetValue', targetValue);
+      set('startDate', startDate, (v: string) => v ? new Date(v) : null);
+      set('endDate', endDate, (v: string) => v ? new Date(v) : null);
+      set('sortOrder', sortOrder, Number);
+      set('isActive', isActive);
+
       const updated = await db.banner.update({
         where: { id },
-        data: {
-          ...(title !== undefined && { title }),
-          ...(formattedImage !== undefined && { imageUrl: formattedImage }),
-          ...(targetType !== undefined && { targetType }),
-          ...(targetValue !== undefined && { targetValue }),
-          ...(sortOrder !== undefined && { sortOrder: Number(sortOrder) }),
-          ...(isActive !== undefined && { isActive }),
-        },
+        data,
       });
 
       ApiResponse.success(res, updated, 'Banner updated successfully');

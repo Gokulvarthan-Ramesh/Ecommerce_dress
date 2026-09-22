@@ -950,17 +950,49 @@ model Notification {
 // 12. STORE BANNERS & PROMOTIONS
 // ==========================================
 model Banner {
-  id          String   @id @default(uuid())
-  title       String
-  imageUrl    String
-  targetType  String   @default("NONE") // CATEGORY, PRODUCT, EXTERNAL, NONE
-  targetValue String? // Category ID/slug, Product ID/slug, or external URL
-  sortOrder   Int      @default(0)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String    @id @default(uuid())
+  title           String
+  subtitle        String?
+  description     String?
+  imageUrl        String
+  // ── Colors & styling ──
+  backgroundColor String?   // e.g. "#1a1a2e"
+  textColor       String?   // e.g. "#FFFFFF"
+  accentColor     String?   // e.g. "#e94560"
+  gradientStart   String?   // e.g. "#667eea"
+  gradientEnd     String?   // e.g. "#764ba2"
+  gradientAngle   Int?      @default(135) // degrees
+  overlayOpacity  Float?    @default(0) // 0.0 to 1.0
+  overlayColor    String?   // e.g. "#000000"
+  // ── CTA button ──
+  ctaText         String?   // e.g. "Shop Now"
+  ctaTextColor    String?   // e.g. "#FFFFFF"
+  ctaBgColor      String?   // e.g. "#e94560"
+  ctaLink         String?   // deep-link or URL the button navigates to
+  // ── Badge / tag ──
+  badgeText       String?   // e.g. "NEW", "50% OFF"
+  badgeBgColor    String?   // e.g. "#ff6b6b"
+  badgeTextColor  String?   // e.g. "#FFFFFF"
+  // ── Targeting ──
+  bannerType      String    @default("HERO") // HERO, STRIP, POPUP, CATEGORY_HIGHLIGHT
+  targetType      String    @default("NONE") // CATEGORY, PRODUCT, LINK, NONE
+  targetValue     String?   // Category slug, Product slug, or external URL
+  // ── Scheduling ──
+  startDate       DateTime?
+  endDate         DateTime?
+  // ── Ordering ──
+  sortOrder       Int       @default(0)
+  isActive        Boolean   @default(true)
+  // ── Analytics ──
+  viewCount       Int       @default(0)
+  clickCount      Int       @default(0)
+  // ── Timestamps ──
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   @@index([isActive, sortOrder])
+  @@index([bannerType, isActive])
+  @@index([startDate, endDate])
   @@map("banners")
 }
 

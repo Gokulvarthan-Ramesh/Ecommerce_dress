@@ -106,13 +106,47 @@ export class ConfigController {
   /**
    * Public Active Banners Endpoint
    * Returns home screen hero carousels & promotional banners sorted by sortOrder
+   * Supports ?type=HERO|STRIP|POPUP|CATEGORY_HIGHLIGHT filter
+   * Respects scheduled start/end dates
    */
   static async getActiveBanners(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
+      const bannerType = req.query.type as string | undefined;
+      const now = new Date();
+
+      const where: any = {
+        isActive: true,
+        OR: [
+          { startDate: null },
+          { startDate: { lte: now } },
+        ],
+        AND: [
+          {
+            OR: [
+              { endDate: null },
+              { endDate: { gte: now } },
+            ],
+          },
+        ],
+      };
+
+      if (bannerType) {
+        where.bannerType = bannerType.toUpperCase();
+      }
+
       const banners = await (prisma as any).banner.findMany({
-        where: { isActive: true },
+        where,
         orderBy: { sortOrder: 'asc' },
       });
+
+      // Increment view counts in background (fire-and-forget)
+      if (banners.length > 0) {
+        const ids = banners.map((b: any) => b.id);
+        (prisma as any).banner.updateMany({
+          where: { id: { in: ids } },
+          data: { viewCount: { increment: 1 } },
+        }).catch(() => {});
+      }
 
       ApiResponse.success(res, banners);
     } catch (error) {
