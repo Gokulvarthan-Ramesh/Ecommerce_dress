@@ -13,9 +13,32 @@ import { Role } from '@prisma/client';
 import { cleanIndianPhoneNumber } from '../utils/phone';
 
 export class AuthService {
-  static async sendWhatsAppOtp(targetPhone: string) {
+  // ── Login OTP: user MUST already exist ──
+  static async sendLoginOtp(targetPhone: string) {
     const cleanPhone = cleanIndianPhoneNumber(targetPhone);
-    
+
+    const user = await UserRepository.findUnique({ where: { phone: cleanPhone } });
+    if (!user) {
+      throw new AppError('User not registered. Please register first.', 404);
+    }
+
+    return this._generateAndSendOtp(cleanPhone);
+  }
+
+  // ── Register OTP: user must NOT exist ──
+  static async sendRegisterOtp(targetPhone: string) {
+    const cleanPhone = cleanIndianPhoneNumber(targetPhone);
+
+    const user = await UserRepository.findUnique({ where: { phone: cleanPhone } });
+    if (user) {
+      throw new AppError('User with this phone number already exists. Please log in.', 400);
+    }
+
+    return this._generateAndSendOtp(cleanPhone);
+  }
+
+  // ── Shared OTP generation logic ──
+  private static async _generateAndSendOtp(cleanPhone: string) {
     const recentOtp = await UserRepository.getLatestOtp(cleanPhone);
     if (recentOtp && recentOtp.createdAt >= new Date(Date.now() - 60 * 1000)) {
       throw new AppError('Please wait 60 seconds before requesting another OTP');

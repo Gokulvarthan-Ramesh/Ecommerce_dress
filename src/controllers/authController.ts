@@ -4,11 +4,22 @@ import { ApiResponse } from '../utils/response';
 import { AppError } from '../middleware/errorHandler';
 
 export class AuthController {
-  static async sendWhatsAppOtp(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async sendLoginOtp(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { whatsappNumber, phone } = req.body;
       const targetPhone = (whatsappNumber || phone || '').toString();
-      const result = await AuthService.sendWhatsAppOtp(targetPhone);
+      const result = await AuthService.sendLoginOtp(targetPhone);
+      ApiResponse.success(res, result.data, result.message);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async sendRegisterOtp(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { whatsappNumber, phone } = req.body;
+      const targetPhone = (whatsappNumber || phone || '').toString();
+      const result = await AuthService.sendRegisterOtp(targetPhone);
       ApiResponse.success(res, result.data, result.message);
     } catch (error) {
       next(error);

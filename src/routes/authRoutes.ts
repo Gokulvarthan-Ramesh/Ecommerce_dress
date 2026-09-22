@@ -6,8 +6,9 @@ import { registerSchema, loginSchema, sendOtpSchema, refreshTokenSchema, updateP
 
 const router = Router();
 
-// Public auth routes
-router.post('/send-otp', validateRequest(sendOtpSchema), AuthController.sendWhatsAppOtp);
+// OTP routes (separate for login vs register)
+router.post('/login/send-otp', validateRequest(sendOtpSchema), AuthController.sendLoginOtp);
+router.post('/register/send-otp', validateRequest(sendOtpSchema), AuthController.sendRegisterOtp);
 router.post('/register', validateRequest(registerSchema), AuthController.register);
 router.post('/login', validateRequest(loginSchema), AuthController.login);
 router.post('/admin/login', validateRequest(adminLoginSchema), AuthController.adminLogin);
