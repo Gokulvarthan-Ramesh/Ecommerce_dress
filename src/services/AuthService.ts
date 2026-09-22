@@ -37,6 +37,14 @@ export class AuthService {
     return this._generateAndSendOtp(cleanPhone);
   }
 
+  // ── Shared Resend OTP ──
+  static async resendOtp(targetPhone: string) {
+    const cleanPhone = cleanIndianPhoneNumber(targetPhone);
+    // Directly generate and send OTP without checking if user exists, 
+    // relying on the 60-second rate limit inside _generateAndSendOtp.
+    return this._generateAndSendOtp(cleanPhone);
+  }
+
   // ── Shared OTP generation logic ──
   private static async _generateAndSendOtp(cleanPhone: string) {
     const recentOtp = await UserRepository.getLatestOtp(cleanPhone);
@@ -274,10 +282,15 @@ export class AuthService {
       throw new AppError('User not found', 404);
     }
 
-    const wallet = await WalletService.getOrCreateWallet(userId);
-    const referralCount = await ReferralRepository.count({
-      where: { referrerId: userId, status: 'CREDITED' },
-    });
+    const [wallet, referralCount, defaultAddress] = await Promise.all([
+      WalletService.getOrCreateWallet(userId),
+      ReferralRepository.count({
+        where: { referrerId: userId, status: 'CREDITED' },
+      }),
+      prisma.address.findFirst({
+        where: { userId, isDefault: true },
+      }),
+    ]);
 
     return {
       id: user.id,
@@ -291,6 +304,7 @@ export class AuthService {
       createdAt: user.createdAt,
       walletBalance: Number(wallet.balance),
       successfulReferrals: referralCount,
+      defaultAddress: defaultAddress || null,
     };
   }
 

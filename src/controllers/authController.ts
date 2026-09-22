@@ -26,6 +26,17 @@ export class AuthController {
     }
   }
 
+  static async resendOtp(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { whatsappNumber, phone } = req.body;
+      const targetPhone = (whatsappNumber || phone || '').toString();
+      const result = await AuthService.resendOtp(targetPhone);
+      ApiResponse.success(res, result.data, result.message);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async register(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { phone, whatsappNumber, otp, name, email, referralCode, gender, dob } = req.body;

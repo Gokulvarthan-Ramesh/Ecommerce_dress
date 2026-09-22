@@ -88,7 +88,7 @@ export class AdminController {
    */
   static async saveCategory(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { id, name, slug, description, image, imageUrl, level = 1, sortOrder = 0, parentId, isActive = true } = req.body;
+      const { id, name, slug, description, image, imageUrl, level, sortOrder = 0, parentId, isActive = true } = req.body;
 
       if (!name || !slug) {
         throw new AppError('Category name and unique slug are required');
@@ -100,10 +100,20 @@ export class AdminController {
         formattedImage = GoogleDriveService.formatToDirectImageUrl(rawImg);
       }
 
+      let finalLevel = Number(level) || 1;
+      if (parentId && parentId !== 'null') {
+        const parentCat = await prisma.category.findUnique({ where: { id: parentId } });
+        if (parentCat) {
+          finalLevel = parentCat.level + 1;
+        }
+      } else {
+        finalLevel = 1;
+      }
+
       const category = await prisma.category.upsert({
         where: { id: id || 'new-category' },
-        update: { name, slug, description, imageUrl: formattedImage, level: Number(level), sortOrder: Number(sortOrder), parentId, isActive },
-        create: { name, slug, description, imageUrl: formattedImage, level: Number(level), sortOrder: Number(sortOrder), parentId, isActive },
+        update: { name, slug, description, imageUrl: formattedImage, level: finalLevel, sortOrder: Number(sortOrder), parentId: parentId === 'null' ? null : parentId, isActive },
+        create: { name, slug, description, imageUrl: formattedImage, level: finalLevel, sortOrder: Number(sortOrder), parentId: parentId === 'null' ? null : parentId, isActive },
       });
 
       ApiResponse.success(res, category, 'Category saved successfully');
@@ -1423,9 +1433,21 @@ export class AdminController {
         where.isActive = isActive === 'true';
       }
 
-      // Filter by level (1 = parent, 2 = sub, 3 = sub-sub)
-      if (level) {
-        where.level = parseInt(level as string, 10);
+      // Filter by level (e.g., level=1, level=1,2, or level[]=1&level[]=2)
+      if (level && level !== 'all') {
+        let levelsArray: number[] = [];
+        if (Array.isArray(level)) {
+          levelsArray = level.map(l => parseInt(String(l), 10)).filter(l => !isNaN(l));
+        } else if (typeof level === 'string' && level.includes(',')) {
+          levelsArray = level.split(',').map(l => parseInt(l.trim(), 10)).filter(l => !isNaN(l));
+        } else {
+          const parsedLevel = parseInt(level as string, 10);
+          if (!isNaN(parsedLevel)) levelsArray.push(parsedLevel);
+        }
+        
+        if (levelsArray.length > 0) {
+          where.level = { in: levelsArray };
+        }
       }
 
       // Filter by parent category
@@ -1495,6 +1517,23 @@ export class AdminController {
       const rawImg = imageUrl || image;
       let formattedImage = rawImg !== undefined ? (rawImg ? GoogleDriveService.formatToDirectImageUrl(rawImg) : null) : undefined;
 
+      let finalLevel: number | undefined;
+      let finalParentId = existing.parentId;
+
+      if (parentId !== undefined) {
+        finalParentId = parentId === 'null' ? null : parentId;
+        if (finalParentId) {
+          const parentCat = await prisma.category.findUnique({ where: { id: finalParentId } });
+          if (parentCat) {
+            finalLevel = parentCat.level + 1;
+          }
+        } else {
+          finalLevel = 1;
+        }
+      } else if (level !== undefined) {
+        finalLevel = Number(level);
+      }
+
       const updated = await prisma.category.update({
         where: { id },
         data: {
@@ -1502,9 +1541,9 @@ export class AdminController {
           ...(slug !== undefined && { slug: slug.trim() }),
           ...(description !== undefined && { description }),
           ...(formattedImage !== undefined && { imageUrl: formattedImage }),
-          ...(level !== undefined && { level: Number(level) }),
+          ...(finalLevel !== undefined && { level: finalLevel }),
           ...(sortOrder !== undefined && { sortOrder: Number(sortOrder) }),
-          ...(parentId !== undefined && { parentId }),
+          ...(parentId !== undefined && { parentId: finalParentId }),
           ...(isActive !== undefined && { isActive }),
         },
       });

@@ -85,11 +85,20 @@ export class ProductService {
       }
     }
 
-    // 6. Level filter (1 = root/parent, 2 = subcategory)
-    if (level) {
-      const lvl = parseInt(String(level), 10);
-      if (!isNaN(lvl)) {
-        andConditions.push({ level: lvl });
+    // 6. Level filter (e.g., level=1, level=1,2, or level[]=1&level[]=2)
+    if (level && level !== 'all') {
+      let levelsArray: number[] = [];
+      if (Array.isArray(level)) {
+        levelsArray = level.map(l => parseInt(String(l), 10)).filter(l => !isNaN(l));
+      } else if (typeof level === 'string' && level.includes(',')) {
+        levelsArray = level.split(',').map(l => parseInt(l.trim(), 10)).filter(l => !isNaN(l));
+      } else {
+        const lvl = parseInt(String(level), 10);
+        if (!isNaN(lvl)) levelsArray.push(lvl);
+      }
+      
+      if (levelsArray.length > 0) {
+        andConditions.push({ level: { in: levelsArray } });
       }
     }
 

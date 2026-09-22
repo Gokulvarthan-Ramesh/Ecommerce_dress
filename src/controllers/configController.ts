@@ -12,32 +12,38 @@ export class ConfigController {
    */
   static async getPublicConfig(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const [
-        store,
-        shipping,
-        payments,
-        firstOrderOffer,
-        referral,
-        wallet,
-        announcementBar,
-        trustBadges,
-        socialLinks,
-        cartPrompts,
-      ] = await Promise.all([
-        SystemSettingService.getStoreConfig(),
-        SystemSettingService.getShippingConfig(),
-        SystemSettingService.getPaymentsConfig(),
-        SystemSettingService.getFirstOrderOfferConfig(),
-        SystemSettingService.getReferralConfig(),
-        SystemSettingService.getWalletConfig(),
-        SystemSettingService.getAnnouncementBarConfig(),
-        SystemSettingService.getTrustBadgesConfig(),
-        SystemSettingService.getSocialLinksConfig(),
-        SystemSettingService.getCartPromptsConfig(),
-      ]);
+      // Support ?fields=store,announcementBar,trustBadges to fetch only specific sections
+      const fieldsParam = req.query.fields as string | undefined;
+      const allSections = [
+        'store', 'announcementBar', 'trustBadges', 'socialLinks',
+        'cartPrompts', 'shipping', 'payments', 'offers', 'referral', 'wallet',
+      ];
+      const requestedSections = fieldsParam
+        ? fieldsParam.split(',').map(f => f.trim()).filter(f => allSections.includes(f))
+        : allSections; // No filter = return everything
 
-      const config = {
-        store: {
+      const needsSection = (name: string) => requestedSections.includes(name);
+
+      // Only fetch data for requested sections
+      const [store, shipping, payments, firstOrderOffer, referral, wallet, announcementBar, trustBadges, socialLinks, cartPrompts] =
+        await Promise.all([
+          (needsSection('store') || needsSection('shipping') || needsSection('referral'))
+            ? SystemSettingService.getStoreConfig() : Promise.resolve(null),
+          needsSection('shipping') ? SystemSettingService.getShippingConfig() : Promise.resolve(null),
+          needsSection('payments') ? SystemSettingService.getPaymentsConfig() : Promise.resolve(null),
+          needsSection('offers') ? SystemSettingService.getFirstOrderOfferConfig() : Promise.resolve(null),
+          needsSection('referral') ? SystemSettingService.getReferralConfig() : Promise.resolve(null),
+          needsSection('wallet') ? SystemSettingService.getWalletConfig() : Promise.resolve(null),
+          needsSection('announcementBar') ? SystemSettingService.getAnnouncementBarConfig() : Promise.resolve(null),
+          needsSection('trustBadges') ? SystemSettingService.getTrustBadgesConfig() : Promise.resolve(null),
+          needsSection('socialLinks') ? SystemSettingService.getSocialLinksConfig() : Promise.resolve(null),
+          needsSection('cartPrompts') ? SystemSettingService.getCartPromptsConfig() : Promise.resolve(null),
+        ]);
+
+      const config: Record<string, any> = {};
+
+      if (needsSection('store') && store) {
+        config.store = {
           name: store.name,
           tagline: store.tagline,
           logoUrl: store.logo_url,
@@ -52,30 +58,49 @@ export class ConfigController {
           termsUrl: store.terms_url,
           privacyUrl: store.privacy_url,
           aboutUs: store.about_us,
-        },
-        announcementBar: {
+        };
+      }
+
+      if (needsSection('announcementBar') && announcementBar) {
+        config.announcementBar = {
           isEnabled: announcementBar.is_enabled,
           text: announcementBar.text,
           textColor: announcementBar.text_color,
           backgroundColor: announcementBar.background_color,
           targetUrl: announcementBar.target_url,
-        },
-        trustBadges,
-        socialLinks,
-        cartPrompts,
-        shipping: {
+        };
+      }
+
+      if (needsSection('trustBadges') && trustBadges) {
+        config.trustBadges = trustBadges;
+      }
+
+      if (needsSection('socialLinks') && socialLinks) {
+        config.socialLinks = socialLinks;
+      }
+
+      if (needsSection('cartPrompts') && cartPrompts) {
+        config.cartPrompts = cartPrompts;
+      }
+
+      if (needsSection('shipping') && shipping && store) {
+        config.shipping = {
           standardDeliveryFee: shipping.standard_delivery_fee,
           freeDeliveryThreshold: shipping.free_delivery_threshold,
-          estimatedDeliveryDays: shipping.standard_delivery_fee !== undefined && (shipping as any).estimated_delivery_days
-            ? (shipping as any).estimated_delivery_days
-            : store.estimated_delivery_days,
-        },
-        payments: {
+          estimatedDeliveryDays: (shipping as any).estimated_delivery_days || store.estimated_delivery_days,
+        };
+      }
+
+      if (needsSection('payments') && payments) {
+        config.payments = {
           codEnabled: payments.cod_enabled,
           codFee: payments.cod_fee,
           cashfreeEnabled: payments.cashfree_enabled,
-        },
-        offers: {
+        };
+      }
+
+      if (needsSection('offers') && firstOrderOffer) {
+        config.offers = {
           firstOrderOffer: {
             isEnabled: firstOrderOffer.is_enabled,
             discountAmount: firstOrderOffer.discount_amount,
@@ -84,18 +109,24 @@ export class ConfigController {
               ? `Flat ₹${firstOrderOffer.discount_amount} OFF on your first order above ₹${firstOrderOffer.min_order_value}!`
               : null,
           },
-        },
-        referral: {
+        };
+      }
+
+      if (needsSection('referral') && referral && store) {
+        config.referral = {
           isEnabled: referral.is_enabled,
           referrerBonus: referral.referrer_bonus,
           refereeBonus: referral.referee_bonus,
           minQualifyingOrder: referral.min_qualifying_order,
           shareMessage: (referral as any).share_message || `Join ${store.name} with my referral code and get ₹${referral.referee_bonus} instantly in your wallet!`,
-        },
-        wallet: {
+        };
+      }
+
+      if (needsSection('wallet') && wallet) {
+        config.wallet = {
           maxRedemptionPercent: wallet.max_order_redemption_percent,
-        },
-      };
+        };
+      }
 
       ApiResponse.success(res, config, 'Store configuration fetched successfully');
     } catch (error) {
