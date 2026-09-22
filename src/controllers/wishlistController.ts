@@ -81,7 +81,10 @@ export class WishlistController {
         };
       });
 
-      ApiResponse.success(res, formattedItems);
+      ApiResponse.success(res, {
+        count: formattedItems.length,
+        items: formattedItems
+      });
     } catch (error) {
       next(error);
     }
