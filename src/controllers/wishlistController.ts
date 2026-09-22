@@ -17,15 +17,14 @@ export class WishlistController {
           items: {
             include: {
               product: {
-                select: {
-                  id: true,
-                  name: true,
-                  slug: true,
-                  sellingPrice: true,
-                  isActive: true,
-                  images: {
-                    where: { isPrimary: true },
-                    select: { imageUrl: true },
+                include: {
+                  images: true,
+                  variants: true,
+                  category: {
+                    select: { id: true, name: true, slug: true }
+                  },
+                  _count: {
+                    select: { reviews: true }
                   }
                 }
               }
@@ -38,20 +37,49 @@ export class WishlistController {
       if (!wishlist) {
         wishlist = await prisma.wishlist.create({
           data: { userId },
-          include: { items: { include: { product: { select: { id: true, name: true, slug: true, sellingPrice: true, isActive: true, images: { where: { isPrimary: true }, select: { imageUrl: true } } } } } } }
+          include: { 
+            items: { 
+              include: { 
+                product: { 
+                  include: { 
+                    images: true, 
+                    variants: true, 
+                    category: { select: { id: true, name: true, slug: true } },
+                    _count: { select: { reviews: true } }
+                  } 
+                } 
+              } 
+            } 
+          }
         });
       }
 
       const items = wishlist!.items || [];
-      const formattedItems = items.map((item: any) => ({
-        id: item.product.id,
-        name: item.product.name,
-        slug: item.product.slug,
-        price: Number(item.product.sellingPrice),
-        imageUrl: item.product.images[0]?.imageUrl || null,
-        isAvailable: item.product.isActive,
-        addedAt: item.createdAt,
-      }));
+      const formattedItems = items.map((item: any) => {
+        const p = item.product;
+        // Construct full product object just like in ProductService
+        return {
+          id: p.id,
+          name: p.name,
+          slug: p.slug,
+          description: p.description,
+          price: Number(p.sellingPrice),
+          mrp: Number(p.mrp),
+          discountPercent: p.discountPercent,
+          imageUrl: p.images.find((img: any) => img.isPrimary)?.imageUrl || p.images[0]?.imageUrl || null,
+          images: p.images,
+          variants: p.variants,
+          category: p.category,
+          isActive: p.isActive,
+          tags: p.tags,
+          isNew: p.isNew,
+          isFeatured: p.isFeatured,
+          rating: Number(p.rating || 0),
+          reviewsCount: p._count?.reviews || 0,
+          isAvailable: p.isActive,
+          addedAt: item.createdAt,
+        };
+      });
 
       ApiResponse.success(res, formattedItems);
     } catch (error) {
