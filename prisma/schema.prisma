@@ -139,7 +139,7 @@ model Address {
   userId       String
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   name         String
-  phone        String
+  phone        String?
   addressLine1 String
   addressLine2 String?
   city         String

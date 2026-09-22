@@ -53,6 +53,7 @@ export class AddressController {
       const {
         name,
         phone,
+        street,
         addressLine1,
         addressLine2,
         city,
@@ -61,10 +62,21 @@ export class AddressController {
         pincode,
         country = 'India',
         isDefault = false,
+        latitude,
+        longitude,
       } = req.body;
 
-      if (!name || !phone || !addressLine1 || !city || !state || !pincode) {
-        throw new AppError('name, phone, addressLine1, city, state, and pincode are required', 400);
+      const finalAddressLine1 = addressLine1 || street;
+
+      if (!name || !finalAddressLine1 || !city || !state || !pincode) {
+        throw new AppError('name, addressLine1 (or street), city, state, and pincode are required', 400);
+      }
+
+      // Phone is optional — fall back to user's profile phone if not provided
+      let finalPhone = phone ? phone.toString().trim() : null;
+      if (!finalPhone) {
+        const user = await prisma.user.findUnique({ where: { id: userId }, select: { phone: true } });
+        finalPhone = user?.phone || null;
       }
 
       // If marked default, unset default on other addresses
@@ -83,15 +95,17 @@ export class AddressController {
         data: {
           userId,
           name: name.trim(),
-          phone: phone.trim(),
-          addressLine1: addressLine1.trim(),
+          phone: finalPhone,
+          addressLine1: finalAddressLine1.trim(),
           addressLine2: addressLine2 ? addressLine2.trim() : null,
           city: city.trim(),
           district: district ? district.trim() : city.trim(),
           state: state.trim(),
-          pincode: pincode.trim(),
+          pincode: pincode.toString().trim(),
           country: country.trim(),
           isDefault: makeDefault,
+          ...(latitude !== undefined && { latitude: Number(latitude) }),
+          ...(longitude !== undefined && { longitude: Number(longitude) }),
         },
       });
 
