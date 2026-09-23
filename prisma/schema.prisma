@@ -955,28 +955,29 @@ model Banner {
   subtitle        String?
   description     String?
   imageUrl        String
+  redirectUrl     String?
   // ── Colors & styling ──
-  backgroundColor String?   // e.g. "#1a1a2e"
-  textColor       String?   // e.g. "#FFFFFF"
-  accentColor     String?   // e.g. "#e94560"
-  gradientStart   String?   // e.g. "#667eea"
-  gradientEnd     String?   // e.g. "#764ba2"
+  backgroundColor String? // e.g. "#1a1a2e"
+  textColor       String? // e.g. "#FFFFFF"
+  accentColor     String? // e.g. "#e94560"
+  gradientStart   String? // e.g. "#667eea"
+  gradientEnd     String? // e.g. "#764ba2"
   gradientAngle   Int?      @default(135) // degrees
   overlayOpacity  Float?    @default(0) // 0.0 to 1.0
-  overlayColor    String?   // e.g. "#000000"
+  overlayColor    String? // e.g. "#000000"
   // ── CTA button ──
-  ctaText         String?   // e.g. "Shop Now"
-  ctaTextColor    String?   // e.g. "#FFFFFF"
-  ctaBgColor      String?   // e.g. "#e94560"
-  ctaLink         String?   // deep-link or URL the button navigates to
+  ctaText         String? // e.g. "Shop Now"
+  ctaTextColor    String? // e.g. "#FFFFFF"
+  ctaBgColor      String? // e.g. "#e94560"
+  ctaLink         String? // deep-link or URL the button navigates to
   // ── Badge / tag ──
-  badgeText       String?   // e.g. "NEW", "50% OFF"
-  badgeBgColor    String?   // e.g. "#ff6b6b"
-  badgeTextColor  String?   // e.g. "#FFFFFF"
+  badgeText       String? // e.g. "NEW", "50% OFF"
+  badgeBgColor    String? // e.g. "#ff6b6b"
+  badgeTextColor  String? // e.g. "#FFFFFF"
   // ── Targeting ──
   bannerType      String    @default("HERO") // HERO, STRIP, POPUP, CATEGORY_HIGHLIGHT
   targetType      String    @default("NONE") // CATEGORY, PRODUCT, LINK, NONE
-  targetValue     String?   // Category slug, Product slug, or external URL
+  targetValue     String? // Category slug, Product slug, or external URL
   // ── Scheduling ──
   startDate       DateTime?
   endDate         DateTime?

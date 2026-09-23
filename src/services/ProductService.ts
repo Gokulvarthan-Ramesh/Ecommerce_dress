@@ -478,6 +478,7 @@ export class ProductService {
               parent: { select: { id: true, name: true, slug: true } },
             },
           },
+          images: true,
           variants: {
             where: { isActive: true },
             select: {
@@ -488,6 +489,7 @@ export class ProductService {
               colorHex: true,
               price: true,
               stockQuantity: true,
+              imageUrl: true,
             },
           },
         },
@@ -512,6 +514,7 @@ export class ProductService {
       },
       include: {
         category: true,
+        images: true,
         variants: {
           where: { isActive: true },
           orderBy: [{ color: 'asc' }, { size: 'asc' }],
