@@ -536,6 +536,7 @@ export class ProductService {
               price: true,
               stockQuantity: true,
               imageUrl: true,
+              images: true,
             },
           },
         },

@@ -60,9 +60,23 @@ export class OrderController {
   static async getOrderDetails(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = req.user!.id;
-      const { id } = req.params;
-      const order = await OrderService.getOrderDetails(userId, id);
+      const orderId = req.params.id;
+      const order = await OrderService.getOrderDetails(userId, orderId);
       ApiResponse.success(res, order);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Retry Cashfree Payment
+   */
+  static async retryPayment(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const orderId = req.params.id;
+      const paymentSession = await OrderService.retryPayment(userId, orderId);
+      ApiResponse.success(res, paymentSession, "Payment session retrieved successfully");
     } catch (error) {
       next(error);
     }

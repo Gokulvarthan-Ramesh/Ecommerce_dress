@@ -208,6 +208,7 @@ model ProductVariant {
   weight                Decimal?               @db.Decimal(10, 2)
   dimensions            String?
   imageUrl              String?
+  images                String[]               @default([])
   stockQuantity         Int                    @default(0)
   isActive              Boolean                @default(true)
   createdAt             DateTime               @default(now())

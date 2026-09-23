@@ -775,4 +775,58 @@ export class OrderService {
 
     return { message: 'Return approved, inventory restored, and refund queued.' };
   }
+
+  /**
+   * Generates a new Cashfree session for a pending order
+   */
+  static async retryPayment(userId: string, orderId: string) {
+    const order = await prisma.order.findFirst({
+      where: {
+        id: orderId,
+        userId: userId,
+      },
+      include: {
+        user: true,
+      }
+    });
+
+    if (!order) {
+      throw new AppError('Order not found', 404);
+    }
+
+    if (order.status !== 'PENDING_PAYMENT' && order.paymentStatus !== 'PENDING') {
+      throw new AppError('Order is not in a pending payment state', 400);
+    }
+
+    if (order.paymentMethod !== 'CASHFREE') {
+      throw new AppError('Order payment method is not Cashfree', 400);
+    }
+
+    // Use CashfreeService to generate a new session
+    const { CashfreeService } = require('./cashfreeService');
+    const cashfreeSession = await CashfreeService.createOrderSession({
+      orderId: order.id,
+      amount: Number(order.paymentAmount),
+      customerId: order.userId,
+      customerPhone: order.user.phone || '9999999999',
+      customerEmail: order.user.email,
+    });
+
+    // Record the new attempt in the database
+    await prisma.paymentAttempt.create({
+      data: {
+        orderId: order.id,
+        provider: 'CASHFREE',
+        providerOrderId: cashfreeSession.cfOrderId.toString(),
+        amount: order.paymentAmount,
+        status: 'PENDING',
+      },
+    });
+
+    return {
+      payment_session_id: cashfreeSession.paymentSessionId,
+      order_id: order.id,
+      cf_order_id: cashfreeSession.cfOrderId.toString()
+    };
+  }
 }
