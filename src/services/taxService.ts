@@ -7,6 +7,7 @@ export class TaxService {
     let sgst = 0;
     let igst = 0;
     let taxableAmount = 0;
+    const appliedTaxRates = new Set<number>();
 
     // Fetch tax rules for categories if needed
     for (const item of items) {
@@ -27,6 +28,8 @@ export class TaxService {
         taxRate = Number(product.category.taxRate);
       }
 
+      appliedTaxRates.add(taxRate);
+
       // Calculate tax exclusive (assuming base prices are exclusive)
       const itemTax = (item.totalPrice * taxRate) / 100;
       totalTax += itemTax;
@@ -43,12 +46,20 @@ export class TaxService {
       }
     }
 
+    const rates = Array.from(appliedTaxRates);
+    const gstPercentage = rates.length === 1 ? rates[0] : rates;
+    const isInterState = shippingAddress?.state && shippingAddress.state.toLowerCase() !== 'karnataka';
+
     return {
       taxableAmount: Math.round(taxableAmount * 100) / 100,
       cgst: Math.round(cgst * 100) / 100,
       sgst: Math.round(sgst * 100) / 100,
       igst: Math.round(igst * 100) / 100,
       totalTax: Math.round(totalTax * 100) / 100,
+      gstPercentage: gstPercentage,
+      cgstPercentage: isInterState ? 0 : (rates.length === 1 ? rates[0] / 2 : rates.map(r => r / 2)),
+      sgstPercentage: isInterState ? 0 : (rates.length === 1 ? rates[0] / 2 : rates.map(r => r / 2)),
+      igstPercentage: isInterState ? gstPercentage : 0
     };
   }
 }

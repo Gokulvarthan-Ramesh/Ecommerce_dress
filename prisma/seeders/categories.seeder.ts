@@ -58,33 +58,15 @@ export const TAXONOMY = {
         "Casual Linen"
       ]
     },
-    "Jeans": {
-      "Slim Fit": [
-        "Light Wash",
-        "Mid Wash",
-        "Dark Wash"
-      ],
-      "Skinny Fit": [
-        "Stretch",
-        "Distressed",
-        "Solid"
-      ],
-      "Regular Fit": [
-        "Light Wash",
-        "Mid Wash",
-        "Dark Wash"
-      ],
-      "Relaxed & Baggy": [
-        "Relaxed Fit",
-        "Baggy Fit",
-        "Wide Leg"
-      ],
-      "Distressed Jeans": [
-        "Ripped",
-        "Heavy Distressed",
-        "Light Distressed"
-      ]
-    },
+    "Jeans": [
+      "Slim Fit",
+      "Skinny Fit",
+      "Regular Fit",
+      "Relaxed Fit",
+      "Baggy Fit",
+      "Wide Leg",
+      "Distressed Jeans"
+    ],
     "Trousers & Chinos": {
       "Formal Trousers": [
         "Slim Fit",

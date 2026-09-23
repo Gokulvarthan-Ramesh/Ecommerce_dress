@@ -175,6 +175,11 @@ export class OrderController {
 
       const order = await prisma.order.findFirst({
         where: { id, userId },
+        include: {
+          orderItems: {
+            include: { product: true }
+          }
+        }
       });
 
       if (!order) throw new AppError('Order not found', 404);
@@ -182,12 +187,15 @@ export class OrderController {
         throw new AppError('Only delivered orders can be returned', 400);
       }
 
-      // Check dynamic return policy window configured by admin
-      const storeConfig = await SystemSettingService.getStoreConfig();
-      const returnWindowDays = storeConfig.return_window_days || 7;
-      const deliveredDays = Math.floor((Date.now() - new Date(order.updatedAt).getTime()) / (1000 * 60 * 60 * 24));
-      if (deliveredDays > returnWindowDays) {
-        throw new AppError(`The ${returnWindowDays}-day return policy window has expired for this order`, 400);
+      // Check dynamic return policy window for all items in the order
+      const currentDate = new Date();
+      const deliveredDays = Math.floor((currentDate.getTime() - new Date(order.updatedAt).getTime()) / (1000 * 60 * 60 * 24));
+      
+      for (const item of order.orderItems) {
+        const returnWindowDays = item.product?.returnWindowDays ?? 2;
+        if (deliveredDays > returnWindowDays) {
+          throw new AppError(`The ${returnWindowDays}-day return policy window has expired for product: ${item.productName}`, 400);
+        }
       }
 
       const updated = await prisma.$transaction(async (tx: any) => {

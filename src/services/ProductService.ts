@@ -524,7 +524,7 @@ export class ProductService {
               parent: { select: { id: true, name: true, slug: true } },
             },
           },
-          images: true,
+
           variants: {
             where: { isActive: true },
             select: {
@@ -537,6 +537,7 @@ export class ProductService {
               stockQuantity: true,
               imageUrl: true,
               images: true,
+              specifications: true,
             },
           },
         },
@@ -561,7 +562,7 @@ export class ProductService {
       },
       include: {
         category: true,
-        images: true,
+
         variants: {
           where: { isActive: true },
           orderBy: [{ color: 'asc' }, { size: 'asc' }],

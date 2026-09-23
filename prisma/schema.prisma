@@ -163,6 +163,8 @@ model Product {
   buyingPrice      Decimal?         @db.Decimal(10, 2)
   isFeatured       Boolean          @default(false)
   isActive         Boolean          @default(true)
+  returnWindowDays Int              @default(2)
+  specifications   Json?
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
   shopId           String?
@@ -209,6 +211,7 @@ model ProductVariant {
   dimensions            String?
   imageUrl              String?
   images                String[]               @default([])
+  specifications        Json?
   stockQuantity         Int                    @default(0)
   isActive              Boolean                @default(true)
   createdAt             DateTime               @default(now())

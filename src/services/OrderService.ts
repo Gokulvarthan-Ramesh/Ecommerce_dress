@@ -188,11 +188,11 @@ export class OrderService {
         include: {
           orderItems: {
             include: {
+              product: { select: { returnWindowDays: true } },
               variant: {
                 select: {
                   product: {
                     select: {
-                      images: true,
                       slug: true,
                     },
                   },
@@ -210,7 +210,11 @@ export class OrderService {
           subOrders: {
             include: {
               shop: { select: { name: true, slug: true } },
-              items: true,
+              items: {
+                include: {
+                  product: { select: { returnWindowDays: true } }
+                }
+              },
             }
           },
         },
@@ -218,8 +222,48 @@ export class OrderService {
     ]);
 
     const limitParam = queryString.limit === 'all' || queryString.pagination === 'false' ? 'all' : parseInt(queryString.limit || '10', 10);
+    
+    const currentDate = new Date();
+    
+    const enrichedOrders = orders.map((order: any) => {
+      const enrichedOrder = { ...order, isReturnApplicable: false };
+
+      if (enrichedOrder.status === 'DELIVERED' && enrichedOrder.updatedAt) {
+        const deliveredDays = Math.floor((currentDate.getTime() - new Date(enrichedOrder.updatedAt).getTime()) / (1000 * 60 * 60 * 24));
+        enrichedOrder.orderItems = enrichedOrder.orderItems.map((item: any) => {
+          const returnWindowDays = item.product?.returnWindowDays ?? 2;
+          return { ...item, isReturnApplicable: deliveredDays <= returnWindowDays };
+        });
+        
+        enrichedOrder.isReturnApplicable = enrichedOrder.orderItems.some((item: any) => item.isReturnApplicable);
+      } else {
+        enrichedOrder.orderItems = enrichedOrder.orderItems.map((item: any) => ({ ...item, isReturnApplicable: false }));
+      }
+
+      if (enrichedOrder.subOrders) {
+        enrichedOrder.subOrders = enrichedOrder.subOrders.map((sub: any) => {
+          let isReturnApplicable = false;
+          if (sub.status === 'DELIVERED' && sub.deliveredAt) {
+            const daysSinceDelivery = Math.floor((currentDate.getTime() - new Date(sub.deliveredAt).getTime()) / (1000 * 60 * 60 * 24));
+            
+            sub.items = sub.items.map((subItem: any) => {
+              const returnWindowDays = subItem.product?.returnWindowDays ?? 2;
+              const itemReturnApplicable = daysSinceDelivery <= returnWindowDays;
+              if (itemReturnApplicable) isReturnApplicable = true;
+              return { ...subItem, isReturnApplicable: itemReturnApplicable };
+            });
+          } else {
+            sub.items = sub.items.map((subItem: any) => ({ ...subItem, isReturnApplicable: false }));
+          }
+          return { ...sub, isReturnApplicable };
+        });
+      }
+
+      return enrichedOrder;
+    });
+
     return {
-      items: orders,
+      items: enrichedOrders,
       meta: ApiFeatures.getMeta(total, parseInt(queryString.page || 1, 10), limitParam as any)
     };
   }
@@ -373,7 +417,11 @@ export class OrderService {
     const order = await prisma.order.findFirst({
       where: { id, userId },
       include: {
-        orderItems: true,
+        orderItems: {
+          include: {
+            product: { select: { returnWindowDays: true } }
+          }
+        },
         payments: {
           select: { status: true, amount: true, method: true },
         },
@@ -382,12 +430,56 @@ export class OrderService {
         subOrders: {
           include: {
             shop: { select: { name: true, slug: true } },
-            items: true,
+            items: {
+              include: {
+                product: { select: { returnWindowDays: true } }
+              }
+            },
           }
         },
       },
     });
-    return order;
+
+    if (!order) return order;
+
+    const currentDate = new Date();
+    
+    const enrichedOrder: any = {
+      ...order,
+      isReturnApplicable: false
+    };
+
+    if (enrichedOrder.status === 'DELIVERED' && enrichedOrder.updatedAt) {
+      const deliveredDays = Math.floor((currentDate.getTime() - new Date(enrichedOrder.updatedAt).getTime()) / (1000 * 60 * 60 * 24));
+      enrichedOrder.orderItems = enrichedOrder.orderItems.map((item: any) => {
+        const returnWindowDays = item.product?.returnWindowDays ?? 2;
+        return { ...item, isReturnApplicable: deliveredDays <= returnWindowDays };
+      });
+      enrichedOrder.isReturnApplicable = enrichedOrder.orderItems.some((item: any) => item.isReturnApplicable);
+    } else {
+      enrichedOrder.orderItems = enrichedOrder.orderItems.map((item: any) => ({ ...item, isReturnApplicable: false }));
+    }
+
+    if (enrichedOrder.subOrders) {
+      enrichedOrder.subOrders = enrichedOrder.subOrders.map((sub: any) => {
+        let isReturnApplicable = false;
+        if (sub.status === 'DELIVERED' && sub.deliveredAt) {
+          const daysSinceDelivery = Math.floor((currentDate.getTime() - new Date(sub.deliveredAt).getTime()) / (1000 * 60 * 60 * 24));
+          
+          sub.items = sub.items.map((subItem: any) => {
+            const returnWindowDays = subItem.product?.returnWindowDays ?? 2;
+            const itemReturnApplicable = daysSinceDelivery <= returnWindowDays;
+            if (itemReturnApplicable) isReturnApplicable = true;
+            return { ...subItem, isReturnApplicable: itemReturnApplicable };
+          });
+        } else {
+          sub.items = sub.items.map((subItem: any) => ({ ...subItem, isReturnApplicable: false }));
+        }
+        return { ...sub, isReturnApplicable };
+      });
+    }
+
+    return enrichedOrder;
   }
 
   static async cancelOrder(userId: string, id: string, reason: string = 'Cancelled by customer') {
@@ -598,11 +690,16 @@ export class OrderService {
     const { reason, notes, items } = body;
     const subOrder = await prisma.subOrder.findFirst({
       where: { id: subOrderId, parentOrder: { userId } },
-      include: { items: true, parentOrder: true },
+      include: { 
+        items: {
+          include: { product: true }
+        }, 
+        parentOrder: true 
+      },
     });
 
     if (!subOrder) throw new AppError('SubOrder not found', 404);
-    if (subOrder.status !== SubOrderStatus.DELIVERED) {
+    if (subOrder.status !== SubOrderStatus.DELIVERED || !subOrder.deliveredAt) {
       throw new AppError('Only delivered items can be returned');
     }
     
@@ -622,6 +719,20 @@ export class OrderService {
 
     if (!itemsToReturn.length) {
       throw new AppError('No items specified for return');
+    }
+
+    // Validate return window for each item
+    const currentDate = new Date();
+    for (const item of itemsToReturn) {
+      const orderItem = subOrder.items.find((i: any) => i.id === item.orderItemId);
+      if (!orderItem) throw new AppError(`Order item ${item.orderItemId} not found in this sub-order`);
+      
+      const returnWindowDays = orderItem.product?.returnWindowDays ?? 2;
+      const daysSinceDelivery = (currentDate.getTime() - subOrder.deliveredAt.getTime()) / (1000 * 3600 * 24);
+      
+      if (daysSinceDelivery > returnWindowDays) {
+        throw new AppError(`Return window of ${returnWindowDays} days has expired for product: ${orderItem.productName}`);
+      }
     }
 
     const newReturn = await prisma.$transaction(async (tx) => {
