@@ -112,6 +112,51 @@ export class ProductService {
       }
     }
 
+    // 7.5. Hide empty categories (no products and no descendants with products)
+    if (query.hideEmpty === 'true') {
+      const allCategories = await CategoryRepository.findMany({
+        where: { isActive: true },
+        select: { id: true, parentId: true, _count: { select: { products: true } } }
+      });
+      
+      const validCategoryIds = new Set<string>();
+      const childrenMap = new Map<string, string[]>();
+      const categoryMap = new Map(allCategories.map((c: any) => [c.id, c]));
+      
+      for (const c of allCategories) {
+        if (c.parentId) {
+          if (!childrenMap.has(c.parentId)) childrenMap.set(c.parentId, []);
+          childrenMap.get(c.parentId)!.push(c.id);
+        }
+      }
+
+      const checkHasProducts = (id: string): boolean => {
+        const category = categoryMap.get(id);
+        if (!category) return false;
+        
+        let hasValidChildren = false;
+        const children = childrenMap.get(id) || [];
+        for (const childId of children) {
+          if (checkHasProducts(childId)) {
+            hasValidChildren = true;
+          }
+        }
+        
+        if (category._count?.products > 0 || hasValidChildren) {
+          validCategoryIds.add(id);
+          return true;
+        }
+        return false;
+      };
+
+      const roots = allCategories.filter((c: any) => c.parentId === null);
+      for (const root of roots) {
+        checkHasProducts(root.id);
+      }
+      
+      andConditions.push({ id: { in: Array.from(validCategoryIds) } });
+    }
+
     const where: any = andConditions.length > 0 ? { AND: andConditions } : {};
 
     // 8. Sorting
@@ -170,46 +215,6 @@ export class ProductService {
       };
     });
 
-    // 7.5. Hide empty categories (no products and no descendants with products)
-    if (query.hideEmpty === 'true') {
-      const validCategoryIds = new Set<string>();
-      const childrenMap = new Map<string, string[]>();
-      
-      for (const c of formatted) {
-        if (c.parentId) {
-          if (!childrenMap.has(c.parentId)) childrenMap.set(c.parentId, []);
-          childrenMap.get(c.parentId)!.push(c.id);
-        }
-      }
-
-      const checkHasProducts = (id: string): boolean => {
-        const category = formatted.find((c: any) => c.id === id);
-        if (!category) return false;
-        
-        let hasValidChildren = false;
-        const children = childrenMap.get(id) || [];
-        for (const childId of children) {
-          if (checkHasProducts(childId)) {
-            hasValidChildren = true;
-          }
-        }
-        
-        if (category._count?.products > 0 || hasValidChildren) {
-          validCategoryIds.add(id);
-          return true;
-        }
-        return false;
-      };
-
-      // Start check from roots
-      const roots = formatted.filter((c: any) => c.parentId === null);
-      for (const root of roots) {
-        checkHasProducts(root.id);
-      }
-      
-      // Filter out any categories not marked as valid
-      formatted = formatted.filter((c: any) => validCategoryIds.has(c.id));
-    }
 
     // Hierarchical multi-level tree view: ?tree=true (Root -> Subcategories -> Sub-subcategories)
     if (tree === 'true' || format === 'tree') {
