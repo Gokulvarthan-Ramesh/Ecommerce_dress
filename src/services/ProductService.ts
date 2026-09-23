@@ -145,7 +145,7 @@ export class ProductService {
     });
 
     // Map mainSlug (root parent: 'men', 'women', 'kids') and status ('ACTIVE' | 'INACTIVE')
-    const formatted = categories.map((c: any) => {
+    let formatted = categories.map((c: any) => {
       // If level 3, parent.parent is root. If level 2, parent is root. If level 1, slug is root.
       const rootParent = c.parent?.parent || c.parent;
       const catMainSlug = rootParent ? rootParent.slug : c.slug;
@@ -169,6 +169,47 @@ export class ProductService {
         _count: c._count,
       };
     });
+
+    // 7.5. Hide empty categories (no products and no descendants with products)
+    if (query.hideEmpty === 'true') {
+      const validCategoryIds = new Set<string>();
+      const childrenMap = new Map<string, string[]>();
+      
+      for (const c of formatted) {
+        if (c.parentId) {
+          if (!childrenMap.has(c.parentId)) childrenMap.set(c.parentId, []);
+          childrenMap.get(c.parentId)!.push(c.id);
+        }
+      }
+
+      const checkHasProducts = (id: string): boolean => {
+        const category = formatted.find((c: any) => c.id === id);
+        if (!category) return false;
+        
+        let hasValidChildren = false;
+        const children = childrenMap.get(id) || [];
+        for (const childId of children) {
+          if (checkHasProducts(childId)) {
+            hasValidChildren = true;
+          }
+        }
+        
+        if (category._count?.products > 0 || hasValidChildren) {
+          validCategoryIds.add(id);
+          return true;
+        }
+        return false;
+      };
+
+      // Start check from roots
+      const roots = formatted.filter((c: any) => c.parentId === null);
+      for (const root of roots) {
+        checkHasProducts(root.id);
+      }
+      
+      // Filter out any categories not marked as valid
+      formatted = formatted.filter((c: any) => validCategoryIds.has(c.id));
+    }
 
     // Hierarchical multi-level tree view: ?tree=true (Root -> Subcategories -> Sub-subcategories)
     if (tree === 'true' || format === 'tree') {

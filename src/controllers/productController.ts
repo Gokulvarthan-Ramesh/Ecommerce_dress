@@ -5,6 +5,11 @@ import { ApiResponse } from '../utils/response';
 export class ProductController {
   static async getCategories(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
+      // For customer side, default to hideEmpty if not explicitly provided
+      if (req.query.hideEmpty === undefined) {
+        req.query.hideEmpty = 'true';
+      }
+      
       const categories = await ProductService.getCategories(req.query);
       ApiResponse.success(res, categories);
     } catch (error) {
