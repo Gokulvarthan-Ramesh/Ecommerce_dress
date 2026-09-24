@@ -308,7 +308,7 @@ export class OrderService {
       return order;
     }
 
-    if (order.paymentStatus === PaymentStatus.SUCCESS && order.status !== OrderStatus.PENDING_PAYMENT) {
+    if (order.status !== OrderStatus.PENDING_PAYMENT || order.paymentStatus === PaymentStatus.SUCCESS) {
       return order;
     }
 
@@ -558,6 +558,16 @@ export class OrderService {
       country: address.country
     } : null;
 
+    // Deduplicate global timeline
+    const uniqueHistory: any[] = [];
+    const seenStatuses = new Set();
+    for (const h of order.statusHistory) {
+      if (!seenStatuses.has(h.newStatus)) {
+        seenStatuses.add(h.newStatus);
+        uniqueHistory.push(h);
+      }
+    }
+
     return {
       orderId: order.id,
       orderNumber: order.orderNumber,
@@ -565,19 +575,122 @@ export class OrderService {
       orderPlacedAt: formatDateTime(order.createdAt),
       estimatedDelivery: formatDateTime(order.estimatedDelivery),
       deliveryAddress: cleanAddress,
-      timeline: order.statusHistory.map(h => ({
+      timeline: uniqueHistory.map(h => ({
         status: h.newStatus,
         reason: h.reason,
+        isCompleted: true,
         time: formatDateTime(h.createdAt)
       })),
       packages: order.subOrders.map(sub => {
         const buildTimeline = () => {
-          const tl = [];
-          tl.push({ status: 'ORDER_PLACED', time: formatDateTime(order.createdAt) });
-          if (sub.shippedAt) tl.push({ status: 'SHIPPED', time: formatDateTime(sub.shippedAt) });
-          if (sub.deliveredAt) tl.push({ status: 'DELIVERED', time: formatDateTime(sub.deliveredAt) });
-          if (sub.cancelledAt) tl.push({ status: 'CANCELLED', time: formatDateTime(sub.cancelledAt) });
-          if (sub.returnRequestedAt) tl.push({ status: 'RETURN_REQUESTED', time: formatDateTime(sub.returnRequestedAt) });
+          let tl = [];
+
+          const confirmedEvent = uniqueHistory.find(h => h.newStatus === 'CONFIRMED');
+          const processingEvent = uniqueHistory.find(h => h.newStatus === 'PROCESSING');
+
+          const isCancelled = !!sub.cancelledAt;
+          const isReturned = !!sub.returnRequestedAt;
+
+          // Build Standard Pipeline
+          tl.push({
+            status: 'ORDER_PLACED',
+            title: 'Ordered',
+            isCompleted: true,
+            time: formatDateTime(order.createdAt)
+          });
+
+          tl.push({
+            status: 'CONFIRMED',
+            title: 'Confirmed',
+            isCompleted: !!confirmedEvent,
+            time: confirmedEvent ? formatDateTime(confirmedEvent.createdAt) : null
+          });
+
+          tl.push({
+            status: 'PROCESSING',
+            title: 'Processing',
+            isCompleted: !!processingEvent,
+            time: processingEvent ? formatDateTime(processingEvent.createdAt) : null
+          });
+
+          if (isCancelled) {
+            tl.push({
+              status: 'CANCELLED',
+              title: 'Cancelled',
+              isCompleted: true,
+              time: formatDateTime(sub.cancelledAt)
+            });
+            // Stop standard pipeline on cancel
+            return tl.filter(t => t.isCompleted);
+          }
+
+          tl.push({
+            status: 'SHIPPED',
+            title: 'Shipped',
+            isCompleted: !!sub.shippedAt,
+            time: formatDateTime(sub.shippedAt)
+          });
+
+          tl.push({
+            status: 'DELIVERED',
+            title: 'Delivered',
+            isCompleted: !!sub.deliveredAt,
+            time: formatDateTime(sub.deliveredAt)
+          });
+
+          // Build Return Pipeline
+          if (isReturned) {
+            tl.push({
+              status: 'RETURN_REQUESTED',
+              title: 'Return Requested',
+              isCompleted: true,
+              reason: sub.returnReason,
+              time: formatDateTime(sub.returnRequestedAt)
+            });
+
+            tl.push({
+              status: 'RETURN_APPROVED',
+              title: 'Return Approved',
+              isCompleted: sub.returnStatus === 'APPROVED' || sub.returnStatus === 'RECEIVED',
+              time: null
+            });
+            
+            tl.push({
+              status: 'RETURN_PICKUP_SCHEDULED',
+              title: 'Pickup Scheduled',
+              isCompleted: false, // Wait for specific status implementation if needed
+              time: null
+            });
+
+            tl.push({
+              status: 'RETURN_PICKED_UP',
+              title: 'Return Picked Up',
+              isCompleted: false, // Update logic when sub.returnStatus is properly modeled for pickup
+              time: null
+            });
+            
+            tl.push({
+              status: 'RETURN_RECEIVED',
+              title: 'Return Received',
+              isCompleted: sub.returnStatus === 'RECEIVED',
+              time: null
+            });
+
+            tl.push({
+              status: 'REFUND_PROCESSING',
+              title: 'Refund Processing',
+              isCompleted: sub.returnStatus === 'RECEIVED', // Assuming refund starts immediately upon receipt
+              time: null
+            });
+
+            tl.push({
+              status: 'REFUNDED',
+              title: 'Refund Completed',
+              isCompleted: false, // Update if refund status added to subOrder
+              time: null
+            });
+          }
+
           return tl;
         };
 
