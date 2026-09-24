@@ -239,6 +239,12 @@ export class OrderService {
     const features = new ApiFeatures(queryString).filter(['id', 'status']).sort().paginate();
     features.query.where.userId = userId;
 
+    // Do not show PENDING_PAYMENT orders in standard history, 
+    // unless explicitly requested via query params.
+    if (!features.query.where.status) {
+      features.query.where.status = { not: OrderStatus.PENDING_PAYMENT };
+    }
+
     const [total, orders] = await Promise.all([
       prisma.order.count({ where: features.query.where }),
       prisma.order.findMany({
