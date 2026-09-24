@@ -25,7 +25,7 @@ export class IconService {
   static async createIcon(data: any) {
     const { name, category, icon_url, status, sort_order } = data;
 
-    if (category && !['ecommerce', 'bottombar', 'DcodexLogo'].includes(category)) {
+    if (category && !['ecommerce', 'bottombar', 'DcodexLogo','filter'].includes(category)) {
       throw new AppError('Invalid category selected', 400);
     }
 
@@ -54,7 +54,7 @@ export class IconService {
 
     const { name, category, icon_url, status, sort_order } = data;
 
-    if (category && !['ecommerce', 'bottombar', 'DcodexLogo'].includes(category)) {
+    if (category && !['ecommerce', 'bottombar', 'DcodexLogo','filter'].includes(category)) {
       throw new AppError('Invalid category selected', 400);
     }
 

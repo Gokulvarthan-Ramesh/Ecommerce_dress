@@ -21,6 +21,7 @@ import addressRoutes from './addressRoutes';
 import homeRoutes from './homeRoutes';
 import shopRoutes from './shopRoutes';
 import vendorRoutes from './vendorRoutes';
+import appRoutes from './appRoutes';
 import { prisma } from '../config/db';
 
 import { ApiResponse } from '../utils/response';
@@ -29,6 +30,7 @@ const router = Router();
 
 router.use('/home', homeRoutes);
 router.use('/config', configRoutes);
+router.use('/app', appRoutes);
 router.get('/banners', ConfigController.getActiveBanners);
 
 // Customer active coupons list (for cart & checkout drawers)

@@ -1344,4 +1344,31 @@ enum IconCategory {
   ecommerce
   bottombar
   DcodexLogo
+  filter
+}
+
+model SplashScreen {
+  id                  String   @id @default(uuid())
+  name                String
+  enabled             Boolean  @default(false)
+  logoUrl             String?
+  backgroundColor     String?
+  backgroundImageUrl  String?
+  animationUrl        String?
+  animationType       String?  @default("none")
+  title               String?
+  subtitle            String?
+  durationMs          Int      @default(2000)
+  nextScreen          String   @default("home")
+  maintenanceMode     Boolean  @default(false)
+  maintenanceMessage  String?
+  forceUpdate         Boolean  @default(false)
+  appVersionMin       String?
+  appVersionLatest    String?
+  sortOrder           Int      @default(0)
+  status              String   @default("active")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@map("splash_screens")
 }

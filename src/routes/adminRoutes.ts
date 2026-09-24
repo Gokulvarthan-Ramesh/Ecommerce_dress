@@ -6,7 +6,7 @@ import { DeliveryController } from '../controllers/deliveryController';
 import { authenticateToken } from '../middleware/auth';
 import { requireAdmin } from '../middleware/adminGuard';
 
-
+import splashAdminRoutes from './splashAdminRoutes';
 const router = Router();
 
 // Protect all admin endpoints
@@ -14,6 +14,9 @@ router.use(authenticateToken, requireAdmin);
 
 // 1. Dashboard KPI Metrics
 router.get('/metrics', AdminController.getDashboardMetrics);
+
+// Splash Screen Settings (CRUD)
+router.use('/splash', splashAdminRoutes);
 
 // 2. Customer Management (CRUD)
 router.get('/customers', AdminController.getCustomers);
