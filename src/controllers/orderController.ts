@@ -69,6 +69,20 @@ export class OrderController {
   }
 
   /**
+   * Track order timeline and suborder status
+   */
+  static async trackOrder(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const orderId = req.params.id;
+      const trackingDetails = await OrderService.trackOrder(userId, orderId);
+      ApiResponse.success(res, trackingDetails, "Tracking details fetched successfully");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Retry Cashfree Payment
    */
   static async retryPayment(req: Request, res: Response, next: NextFunction): Promise<void> {

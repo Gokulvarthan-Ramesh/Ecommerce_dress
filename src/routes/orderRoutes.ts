@@ -16,6 +16,8 @@ router.post('/preview', OrderController.previewCheckout);
 router.post('/checkout', OrderController.createOrder);
 router.get('/', OrderController.getMyOrders);
 router.get('/:id', OrderController.getOrderDetails);
+router.get('/:id/track', OrderController.trackOrder);
+router.post('/:id/retry-payment', OrderController.retryPayment);
 router.post('/:id/cancel', OrderController.cancelOrder);
 router.post('/:id/return', OrderController.requestReturn);
 router.post('/sub/:subOrderId/cancel', OrderController.cancelSubOrder);

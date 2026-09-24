@@ -486,6 +486,123 @@ export class OrderService {
     return OrderService.attachApplicableFlags(order);
   }
 
+  static async trackOrder(userId: string, id: string) {
+    const order = await prisma.order.findFirst({
+      where: { id, userId },
+      select: {
+        id: true,
+        orderNumber: true,
+        status: true,
+        createdAt: true,
+        estimatedDelivery: true,
+        addressSnapshot: true,
+        statusHistory: {
+          orderBy: { createdAt: 'asc' },
+          select: {
+            newStatus: true,
+            createdAt: true,
+            reason: true,
+          }
+        },
+        subOrders: {
+          select: {
+            id: true,
+            subOrderNumber: true,
+            status: true,
+            courierPartner: true,
+            trackingNumber: true,
+            trackingUrl: true,
+            shippedAt: true,
+            deliveredAt: true,
+            cancelledAt: true,
+            cancelReason: true,
+            returnReason: true,
+            returnRequestedAt: true,
+            returnStatus: true,
+            shop: { select: { name: true } },
+            items: {
+              select: {
+                productName: true,
+                sku: true,
+                quantity: true,
+                variant: {
+                  select: { imageUrl: true }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!order) throw new AppError('Order not found', 404);
+
+    const formatDateTime = (date: Date | null) => {
+      if (!date) return null;
+      return {
+        raw: date,
+        formattedDate: date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }),
+        formattedTime: date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+      };
+    };
+
+    const address = order.addressSnapshot as any;
+    const cleanAddress = address ? {
+      name: address.name,
+      phone: address.phone,
+      addressLine1: address.addressLine1,
+      addressLine2: address.addressLine2,
+      city: address.city,
+      state: address.state,
+      pincode: address.pincode,
+      country: address.country
+    } : null;
+
+    return {
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      currentStatus: order.status,
+      orderPlacedAt: formatDateTime(order.createdAt),
+      estimatedDelivery: formatDateTime(order.estimatedDelivery),
+      deliveryAddress: cleanAddress,
+      timeline: order.statusHistory.map(h => ({
+        status: h.newStatus,
+        reason: h.reason,
+        time: formatDateTime(h.createdAt)
+      })),
+      packages: order.subOrders.map(sub => {
+        const buildTimeline = () => {
+          const tl = [];
+          tl.push({ status: 'ORDER_PLACED', time: formatDateTime(order.createdAt) });
+          if (sub.shippedAt) tl.push({ status: 'SHIPPED', time: formatDateTime(sub.shippedAt) });
+          if (sub.deliveredAt) tl.push({ status: 'DELIVERED', time: formatDateTime(sub.deliveredAt) });
+          if (sub.cancelledAt) tl.push({ status: 'CANCELLED', time: formatDateTime(sub.cancelledAt) });
+          if (sub.returnRequestedAt) tl.push({ status: 'RETURN_REQUESTED', time: formatDateTime(sub.returnRequestedAt) });
+          return tl;
+        };
+
+        return {
+          id: sub.id,
+          subOrderNumber: sub.subOrderNumber,
+          status: sub.status,
+          courierPartner: sub.courierPartner || undefined,
+          trackingNumber: sub.trackingNumber || undefined,
+          trackingUrl: sub.trackingUrl || undefined,
+          shopName: sub.shop?.name || undefined,
+          timeline: buildTimeline(),
+          cancelReason: sub.cancelReason || undefined,
+          returnReason: sub.returnReason || undefined,
+          items: sub.items.map(i => ({
+            name: i.productName,
+            sku: i.sku,
+            quantity: i.quantity,
+            image: i.variant?.imageUrl || undefined
+          }))
+        };
+      })
+    };
+  }
+
   static async cancelOrder(userId: string, id: string, reason: string = 'Cancelled by customer') {
     const order = await prisma.order.findFirst({
       where: { id, userId },

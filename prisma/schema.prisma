@@ -158,6 +158,32 @@ model Product {
   fit              String?
   sleeve           String?
   pattern          String?
+  
+  // New A-Z Fields
+  subCategory      String?
+  gender           String?
+  occasion         String?
+  neckType         String?
+  washCare         String?
+  countryOfOrigin  String?
+  
+  // Shipping & Dimensions
+  weight           Decimal?         @db.Decimal(8, 2) // in kg or grams
+  length           Decimal?         @db.Decimal(8, 2)
+  width            Decimal?         @db.Decimal(8, 2)
+  height           Decimal?         @db.Decimal(8, 2)
+  
+  // Returns & Exchange
+  isReturnable      Boolean          @default(true)
+  isExchangeable    Boolean          @default(false)
+  
+  // SEO & Marketing
+  seoTitle         String?
+  seoDescription   String?
+  tags             String[]
+  isNewArrival     Boolean          @default(false)
+  isBestSeller     Boolean          @default(false)
+
   attributes       Json?
   basePrice        Decimal          @db.Decimal(10, 2)
   sellingPrice     Decimal          @db.Decimal(10, 2)
