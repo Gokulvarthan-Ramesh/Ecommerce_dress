@@ -99,14 +99,22 @@ export class CartService {
     const cart = await CartRepository.getCart(userId);
 
     if (quantity === 0) {
-      await CartRepository.deleteMany({ where: { id, cartId: cart.id } });
+      await CartRepository.deleteMany({
+        where: {
+          cartId: cart.id,
+          OR: [{ id }, { variantId: id }]
+        }
+      });
       return null; 
     }
 
-    const cartItem = await CartRepository.findMany({
-      where: { id, cartId: cart.id },
+    const cartItem = await CartRepository.findFirst({
+      where: {
+        cartId: cart.id,
+        OR: [{ id }, { variantId: id }]
+      },
       include: { variant: true },
-    }).then(res => res[0]);
+    });
 
     if (!cartItem) throw new AppError('Cart item not found', 404);
     if (cartItem.variant.stockQuantity < quantity) {
@@ -114,14 +122,19 @@ export class CartService {
     }
 
     return CartRepository.update({
-      where: { id },
+      where: { id: cartItem.id },
       data: { quantity },
     });
   }
 
   static async removeFromCart(userId: string, id: string) {
     const cart = await CartRepository.getCart(userId);
-    await CartRepository.deleteMany({ where: { id, cartId: cart.id } });
+    await CartRepository.deleteMany({
+      where: {
+        cartId: cart.id,
+        OR: [{ id }, { variantId: id }]
+      }
+    });
   }
 
   static async clearCart(userId: string) {
