@@ -184,6 +184,10 @@ model Product {
   isNewArrival   Boolean  @default(false)
   isBestSeller   Boolean  @default(false)
 
+  // Size Charts
+  sizeChartUrl   String?
+  sizeChart      Json?
+
   attributes       Json?
   basePrice        Decimal          @db.Decimal(10, 2)
   sellingPrice     Decimal          @db.Decimal(10, 2)

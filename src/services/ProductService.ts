@@ -145,6 +145,8 @@ const formatProductOutput = (p: any) => {
       returnWindowDays: p.returnWindowDays,
       isExchangeable: p.isExchangeable
     },
+    sizeChartUrl: p.sizeChartUrl || null,
+    sizeChart: p.sizeChart || null,
     tags: p.tags || [],
     badges: {
       isNewArrival: p.isNewArrival,
