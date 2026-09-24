@@ -191,6 +191,7 @@ export class OrderService {
               product: { select: { returnWindowDays: true } },
               variant: {
                 select: {
+                  imageUrl: true,
                   product: {
                     select: {
                       slug: true,
@@ -212,7 +213,13 @@ export class OrderService {
               shop: { select: { name: true, slug: true } },
               items: {
                 include: {
-                  product: { select: { returnWindowDays: true } }
+                  product: { select: { returnWindowDays: true } },
+                  variant: {
+                    select: {
+                      imageUrl: true,
+                      product: { select: { slug: true } }
+                    }
+                  }
                 }
               },
             }
@@ -419,7 +426,13 @@ export class OrderService {
       include: {
         orderItems: {
           include: {
-            product: { select: { returnWindowDays: true } }
+            product: { select: { returnWindowDays: true } },
+            variant: {
+              select: {
+                imageUrl: true,
+                product: { select: { slug: true } }
+              }
+            }
           }
         },
         payments: {
@@ -432,7 +445,13 @@ export class OrderService {
             shop: { select: { name: true, slug: true } },
             items: {
               include: {
-                product: { select: { returnWindowDays: true } }
+                product: { select: { returnWindowDays: true } },
+                variant: {
+                  select: {
+                    imageUrl: true,
+                    product: { select: { slug: true } }
+                  }
+                }
               }
             },
           }
