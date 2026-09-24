@@ -5,6 +5,26 @@ import { AppError } from '../middleware/errorHandler';
 import { prisma } from '../config/db';
 
 export class ProductService {
+  static async getSpecificationKeys(categoryId?: string): Promise<any> {
+    if (!categoryId) {
+      return [];
+    }
+    const category = await prisma.category.findUnique({
+      where: { id: categoryId },
+      select: { specificationKeys: true, parentId: true }
+    });
+    
+    if (category?.specificationKeys) {
+      return category.specificationKeys;
+    }
+    
+    if (category?.parentId) {
+      return this.getSpecificationKeys(category.parentId);
+    }
+    
+    return [];
+  }
+
   static async getCategories(query: any = {}) {
     const {
       status,

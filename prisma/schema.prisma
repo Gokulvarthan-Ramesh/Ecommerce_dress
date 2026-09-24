@@ -121,6 +121,7 @@ model Category {
   seoDescription     String?
   attributes         Json?
   filters            Json?
+  specificationKeys  Json?
   commissionRate     Decimal?            @db.Decimal(5, 2)
   taxRate            Decimal?            @db.Decimal(5, 2)
   deliveryRules      Json?

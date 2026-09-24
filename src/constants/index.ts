@@ -32,3 +32,25 @@ export const SETTING_KEYS = {
   PAYMENTS: 'payments',
   WALLET: 'wallet',
 } as const;
+
+export const PRODUCT_SPECIFICATION_KEYS = {
+  // Common Apparel/Fashion Keys
+  MATERIAL: 'Material',
+  CARE_INSTRUCTIONS: 'Care Instructions',
+  ORIGIN: 'Origin',
+  WEIGHT: 'Weight',
+  WARRANTY: 'Warranty',
+  FIT: 'Fit',
+  STYLE: 'Style',
+  PATTERN: 'Pattern',
+  OCCASION: 'Occasion',
+  NECKLINE: 'Neckline',
+  SLEEVE_LENGTH: 'Sleeve Length',
+  
+  // Variant Level Details
+  FRONT_DETAILS: 'Front Details',
+  BACK_DETAILS: 'Back Details',
+  CLOSURE_TYPE: 'Closure Type',
+  POCKETS: 'Pockets',
+  STRETCH: 'Stretch',
+} as const;

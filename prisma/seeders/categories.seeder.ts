@@ -556,10 +556,21 @@ export async function seedCategories(prisma: PrismaClient) {
 
     const isActive = slug.startsWith('men');
 
+    let specificationKeys: string[] | undefined = undefined;
+    if (children === null) {
+      if (slug.includes('jeans')) {
+        specificationKeys = ["Material", "Fit", "Care Instructions", "Origin", "Front Details", "Back Details", "Closure Type", "Pockets", "Stretch"];
+      } else if (slug.includes('shirt')) {
+        specificationKeys = ["Material", "Fit", "Care Instructions", "Origin", "Neckline", "Sleeve Length", "Front Details", "Back Details"];
+      } else {
+        specificationKeys = ["Material", "Care Instructions", "Origin", "Style"];
+      }
+    }
+
     const category = await prisma.category.upsert({
       where: { slug },
-      update: { name, description, parentId, level, sortOrder, isActive, ...(imageUrl ? { imageUrl } : {}) },
-      create: { name, slug, description, parentId, level, sortOrder, isActive, imageUrl },
+      update: { name, description, parentId, level, sortOrder, isActive, ...(specificationKeys && { specificationKeys }), ...(imageUrl ? { imageUrl } : {}) },
+      create: { name, slug, description, parentId, level, sortOrder, isActive, ...(specificationKeys && { specificationKeys }), imageUrl },
     });
 
     if (level === 1) stats.level1++;

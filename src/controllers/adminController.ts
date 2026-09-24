@@ -88,7 +88,7 @@ export class AdminController {
    */
   static async saveCategory(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { id, name, slug, description, image, imageUrl, level, sortOrder = 0, parentId, isActive = true } = req.body;
+      const { id, name, slug, description, image, imageUrl, level, sortOrder = 0, parentId, isActive = true, specificationKeys } = req.body;
 
       if (!name || !slug) {
         throw new AppError('Category name and unique slug are required');
@@ -112,8 +112,8 @@ export class AdminController {
 
       const category = await prisma.category.upsert({
         where: { id: id || 'new-category' },
-        update: { name, slug, description, imageUrl: formattedImage, level: finalLevel, sortOrder: Number(sortOrder), parentId: parentId === 'null' ? null : parentId, isActive },
-        create: { name, slug, description, imageUrl: formattedImage, level: finalLevel, sortOrder: Number(sortOrder), parentId: parentId === 'null' ? null : parentId, isActive },
+        update: { name, slug, description, imageUrl: formattedImage, level: finalLevel, sortOrder: Number(sortOrder), parentId: parentId === 'null' ? null : parentId, isActive, specificationKeys },
+        create: { name, slug, description, imageUrl: formattedImage, level: finalLevel, sortOrder: Number(sortOrder), parentId: parentId === 'null' ? null : parentId, isActive, specificationKeys },
       });
 
       ApiResponse.success(res, category, 'Category saved successfully');
@@ -1075,6 +1075,8 @@ export class AdminController {
         startDate, endDate,
         // Ordering
         sortOrder = 0, isActive = true,
+        // Links
+        redirectUrl,
       } = req.body;
 
       const rawImg = imageUrl || image;
@@ -1111,6 +1113,7 @@ export class AdminController {
         endDate: endDate ? new Date(endDate) : null,
         sortOrder: Number(sortOrder),
         isActive,
+        redirectUrl: redirectUrl || null,
       };
 
       const banner = await db.banner.upsert({
@@ -1509,7 +1512,7 @@ export class AdminController {
   static async updateCategory(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
-      const { name, slug, description, image, imageUrl, level, sortOrder, parentId, isActive } = req.body;
+      const { name, slug, description, image, imageUrl, level, sortOrder, parentId, isActive, specificationKeys } = req.body;
 
       const existing = await prisma.category.findUnique({ where: { id } });
       if (!existing) throw new AppError('Category not found', 404);
@@ -1545,6 +1548,7 @@ export class AdminController {
           ...(sortOrder !== undefined && { sortOrder: Number(sortOrder) }),
           ...(parentId !== undefined && { parentId: finalParentId }),
           ...(isActive !== undefined && { isActive }),
+          ...(specificationKeys !== undefined && { specificationKeys }),
         },
       });
 
@@ -1809,7 +1813,7 @@ export class AdminController {
         badgeText, badgeBgColor, badgeTextColor,
         bannerType, targetType, targetValue,
         startDate, endDate,
-        sortOrder, isActive,
+        sortOrder, isActive, redirectUrl
       } = req.body;
 
       const existing = await db.banner.findUnique({ where: { id } });
@@ -1850,6 +1854,7 @@ export class AdminController {
       set('endDate', endDate, (v: string) => v ? new Date(v) : null);
       set('sortOrder', sortOrder, Number);
       set('isActive', isActive);
+      set('redirectUrl', redirectUrl);
 
       const updated = await db.banner.update({
         where: { id },

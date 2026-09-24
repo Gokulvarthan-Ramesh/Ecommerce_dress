@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { ProductService } from '../services/ProductService';
 import { ApiResponse } from '../utils/response';
+import { PRODUCT_SPECIFICATION_KEYS } from '../constants';
 
 export class ProductController {
   static async getCategories(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -50,6 +51,24 @@ export class ProductController {
     try {
       const result = await ProductService.getCatalogFilters(req.query);
       ApiResponse.success(res, result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getSpecificationKeys(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const categoryId = req.query.categoryId as string | undefined;
+      
+      let keys: any = [];
+      if (categoryId) {
+        keys = await ProductService.getSpecificationKeys(categoryId);
+      } else {
+        // Fallback to all constant keys if no categoryId provided
+        keys = Object.values(PRODUCT_SPECIFICATION_KEYS);
+      }
+      
+      ApiResponse.success(res, { keys });
     } catch (error) {
       next(error);
     }
