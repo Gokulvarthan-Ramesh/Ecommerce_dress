@@ -67,6 +67,7 @@ export class CheckoutService {
       subtotal += totalPrice;
 
       orderItemsData.push({
+        cartItemId: item.id,
         productId: product.id,
         variantId: variant.id,
         shopId: product.shopId || null,
