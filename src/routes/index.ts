@@ -75,7 +75,10 @@ router.use('/admin/masters', masterRoutes);
 router.use('/admin', adminRoutes);
 router.use('/reviews', reviewRoutes);
 router.use('/wishlist', wishlistRoutes);
+import iconRoutes from './iconRoutes';
+
 router.use('/delivery', deliveryRoutes);
+router.use('/icons', iconRoutes);
 router.use(promoRoutes);
 
 export default router;

@@ -141,48 +141,48 @@ model Category {
 }
 
 model Product {
-  id               String           @id @default(uuid())
+  id               String      @id @default(uuid())
   categoryId       String
   name             String
-  slug             String           @unique
+  slug             String      @unique
   description      String?
   brand            String?
-  productType      ProductType      @default(SIMPLE)
-  sku              String?          @unique
-  barcode          String?          @unique
+  productType      ProductType @default(SIMPLE)
+  sku              String?     @unique
+  barcode          String?     @unique
   videoUrl         String?
-  minStock         Int              @default(0)
+  minStock         Int         @default(0)
   maxOrderQuantity Int?
-  taxRate          Decimal?         @db.Decimal(5, 2)
+  taxRate          Decimal?    @db.Decimal(5, 2)
   fabric           String?
   fit              String?
   sleeve           String?
   pattern          String?
-  
+
   // New A-Z Fields
-  subCategory      String?
-  gender           String?
-  occasion         String?
-  neckType         String?
-  washCare         String?
-  countryOfOrigin  String?
-  
+  subCategory     String?
+  gender          String?
+  occasion        String?
+  neckType        String?
+  washCare        String?
+  countryOfOrigin String?
+
   // Shipping & Dimensions
-  weight           Decimal?         @db.Decimal(8, 2) // in kg or grams
-  length           Decimal?         @db.Decimal(8, 2)
-  width            Decimal?         @db.Decimal(8, 2)
-  height           Decimal?         @db.Decimal(8, 2)
-  
+  weight Decimal? @db.Decimal(8, 2) // in kg or grams
+  length Decimal? @db.Decimal(8, 2)
+  width  Decimal? @db.Decimal(8, 2)
+  height Decimal? @db.Decimal(8, 2)
+
   // Returns & Exchange
-  isReturnable      Boolean          @default(true)
-  isExchangeable    Boolean          @default(false)
-  
+  isReturnable   Boolean @default(true)
+  isExchangeable Boolean @default(false)
+
   // SEO & Marketing
-  seoTitle         String?
-  seoDescription   String?
-  tags             String[]
-  isNewArrival     Boolean          @default(false)
-  isBestSeller     Boolean          @default(false)
+  seoTitle       String?
+  seoDescription String?
+  tags           String[]
+  isNewArrival   Boolean  @default(false)
+  isBestSeller   Boolean  @default(false)
 
   attributes       Json?
   basePrice        Decimal          @db.Decimal(10, 2)
@@ -1169,6 +1169,20 @@ model SupportMessage {
   @@map("support_messages")
 }
 
+model Icon {
+  id        String       @id @default(uuid())
+  name      String
+  slug      String       @unique
+  category  IconCategory @default(ecommerce)
+  iconUrl   String       @map("icon_url")
+  status    String       @default("active")
+  sortOrder Int          @default(0) @map("sort_order")
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+
+  @@map("icons")
+}
+
 enum Role {
   CUSTOMER
   ADMIN
@@ -1324,4 +1338,10 @@ enum TicketPriority {
   MEDIUM
   HIGH
   URGENT
+}
+
+enum IconCategory {
+  ecommerce
+  bottombar
+  DcodexLogo
 }
