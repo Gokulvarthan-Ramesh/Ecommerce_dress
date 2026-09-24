@@ -47,6 +47,26 @@ export class ProductController {
     }
   }
 
+  static async getSuggestedProducts(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { identifier } = req.params;
+      const result = await ProductService.getSuggestedProducts(identifier);
+      ApiResponse.success(res, result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getRecentProducts(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { productIds } = req.body;
+      const result = await ProductService.getRecentProducts(productIds);
+      ApiResponse.success(res, result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async getCatalogFilters(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await ProductService.getCatalogFilters(req.query);

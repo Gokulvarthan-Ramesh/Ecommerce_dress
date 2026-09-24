@@ -607,6 +607,164 @@ export class ProductService {
     };
   }
 
+  static async getSuggestedProducts(identifier: string) {
+    const product = await ProductRepository.findFirst({
+      where: {
+        OR: [{ id: identifier }, { slug: identifier }],
+        isActive: true,
+      },
+      select: { id: true, categoryId: true },
+    });
+
+    if (!product) {
+      throw new AppError('Product not found', 404);
+    }
+
+    const where: any = {
+      isActive: true,
+      id: { not: product.id },
+      categoryId: product.categoryId,
+    };
+
+    let products = await ProductRepository.findMany({
+      where,
+      include: {
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            parent: { select: { id: true, name: true, slug: true } },
+          },
+        },
+        variants: {
+          where: { isActive: true },
+          select: {
+            id: true,
+            sku: true,
+            size: true,
+            color: true,
+            colorHex: true,
+            price: true,
+            stockQuantity: true,
+            imageUrl: true,
+            images: true,
+            specifications: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+    });
+
+    // Fallback: If we don't have enough products in the same category, fetch others
+    if (products.length < 10) {
+      const remainingCount = 10 - products.length;
+      const excludeIds = [product.id, ...products.map((p) => p.id)];
+      
+      const fallbackProducts = await ProductRepository.findMany({
+        where: {
+          isActive: true,
+          id: { notIn: excludeIds },
+        },
+        include: {
+          category: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              parent: { select: { id: true, name: true, slug: true } },
+            },
+          },
+          variants: {
+            where: { isActive: true },
+            select: {
+              id: true,
+              sku: true,
+              size: true,
+              color: true,
+              colorHex: true,
+              price: true,
+              stockQuantity: true,
+              imageUrl: true,
+              images: true,
+              specifications: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: remainingCount,
+      });
+
+      products = [...products, ...fallbackProducts];
+    }
+
+    return {
+      products,
+      pagination: {
+        total: products.length,
+        page: 1,
+        limit: 10,
+        totalPages: 1,
+      },
+    };
+  }
+
+  static async getRecentProducts(productIds: string[]) {
+    if (!productIds || !Array.isArray(productIds) || productIds.length === 0) {
+      return { products: [], pagination: { total: 0, page: 1, limit: 10, totalPages: 0 } };
+    }
+
+    const validIds = productIds.slice(0, 15); // limit to max 15 recent products
+
+    const products = await ProductRepository.findMany({
+      where: {
+        isActive: true,
+        OR: [{ id: { in: validIds } }, { slug: { in: validIds } }],
+      },
+      include: {
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            parent: { select: { id: true, name: true, slug: true } },
+          },
+        },
+        variants: {
+          where: { isActive: true },
+          select: {
+            id: true,
+            sku: true,
+            size: true,
+            color: true,
+            colorHex: true,
+            price: true,
+            stockQuantity: true,
+            imageUrl: true,
+            images: true,
+            specifications: true,
+          },
+        },
+      },
+    });
+
+    // Sort products based on the exact order of productIds provided by the client
+    const sortedProducts = validIds.map(id => 
+      products.find(p => p.id === id || p.slug === id)
+    ).filter(Boolean);
+
+    return {
+      products: sortedProducts,
+      pagination: {
+        total: sortedProducts.length,
+        page: 1,
+        limit: validIds.length,
+        totalPages: 1,
+      },
+    };
+  }
+
   static async getCatalogFilters(query: any = {}) {
     const { mainSlug, category } = query;
     const targetDept = (mainSlug || category) as string | undefined;

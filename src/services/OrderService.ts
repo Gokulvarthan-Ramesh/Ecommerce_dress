@@ -906,6 +906,88 @@ export class OrderService {
     return { message: 'Return approved, inventory restored, and refund queued.' };
   }
 
+  static async cancelReturnRequest(userId: string, returnRequestId: string) {
+    const returnReq = await prisma.returnRequest.findFirst({
+      where: { id: returnRequestId, customerId: userId },
+      include: { subOrder: true },
+    });
+
+    if (!returnReq) throw new AppError('Return request not found', 404);
+    if (returnReq.status !== 'REQUESTED' && returnReq.status !== 'APPROVED') {
+      throw new AppError(`Cannot cancel return request that is already ${returnReq.status}`);
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.returnRequest.update({
+        where: { id: returnRequestId },
+        data: { status: 'CANCELLED' },
+      });
+
+      // Revert suborder status back to DELIVERED
+      await tx.subOrder.update({
+        where: { id: returnReq.subOrderId },
+        data: { 
+          returnStatus: null, 
+          status: SubOrderStatus.DELIVERED, 
+          returnRequestedAt: null,
+          returnReason: null
+        },
+      });
+    });
+
+    return { message: 'Return request cancelled successfully.' };
+  }
+
+  static async markSubOrderRTO(subOrderId: string, reason: string = 'Rejected on Delivery (RTO)') {
+    const subOrder = await prisma.subOrder.findFirst({
+      where: { id: subOrderId },
+      include: { items: true, parentOrder: { include: { payments: true } } },
+    });
+
+    if (!subOrder) throw new AppError('SubOrder not found', 404);
+    if (subOrder.status === SubOrderStatus.RTO || subOrder.status === SubOrderStatus.CANCELLED) {
+      throw new AppError(`SubOrder is already ${subOrder.status}`);
+    }
+
+    const refundAmount = Number(subOrder.subtotal) + Number(subOrder.shippingFee);
+
+    await prisma.$transaction(async (tx) => {
+      await tx.subOrder.update({
+        where: { id: subOrderId },
+        data: {
+          status: SubOrderStatus.RTO,
+          cancelledAt: new Date(),
+          returnReason: reason,
+        },
+      });
+
+      for (const item of subOrder.items) {
+        await tx.inventoryTransaction.create({
+          data: { variantId: item.variantId, quantity: item.quantity, type: 'RETURN', referenceId: subOrderId }
+        });
+
+        await tx.productVariant.update({
+          where: { id: item.variantId },
+          data: { stockQuantity: { increment: item.quantity } },
+        });
+      }
+
+      if (subOrder.parentOrder.paymentStatus === PaymentStatus.SUCCESS && refundAmount > 0) {
+        await tx.refund.create({
+          data: {
+            orderId: subOrder.parentOrder.id,
+            subOrderId: subOrder.id,
+            amount: refundAmount,
+            reason,
+            status: PaymentStatus.PENDING,
+          },
+        });
+      }
+    });
+
+    return { message: 'Sub-order marked as RTO and refund initiated if applicable.' };
+  }
+
   /**
    * Generates a new Cashfree session for a pending order
    */

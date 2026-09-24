@@ -261,8 +261,32 @@ export class OrderController {
         throw new AppError('Return reason is required', 400);
       }
 
-      const updated = await OrderService.requestSubOrderReturn(userId, subOrderId, reason);
+      const updated = await OrderService.requestSubOrderReturn(userId, subOrderId, req.body);
       ApiResponse.success(res, updated, 'Sub-order return request submitted successfully.');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async cancelReturnRequest(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const { returnRequestId } = req.params;
+
+      const result = await OrderService.cancelReturnRequest(userId, returnRequestId);
+      ApiResponse.success(res, result, 'Return request cancelled successfully.');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async markSubOrderRTO(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { subOrderId } = req.params;
+      const { reason } = req.body;
+
+      const result = await OrderService.markSubOrderRTO(subOrderId, reason);
+      ApiResponse.success(res, result, 'SubOrder marked as RTO successfully.');
     } catch (error) {
       next(error);
     }

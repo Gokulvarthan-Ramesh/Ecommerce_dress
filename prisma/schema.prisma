@@ -1158,6 +1158,7 @@ enum OrderStatus {
   CANCELLED
   RETURN_REQUESTED
   RETURNED
+  RTO
 }
 
 enum PaymentMethod {
@@ -1246,6 +1247,7 @@ enum SubOrderStatus {
   CANCELLED
   RETURN_REQUESTED
   RETURNED
+  RTO
 }
 
 enum PayoutStatus {
@@ -1281,6 +1283,7 @@ enum ReturnStatus {
   REJECTED
   RECEIVED
   COMPLETED
+  CANCELLED
 }
 
 enum TicketStatus {

@@ -20,5 +20,6 @@ router.post('/:id/cancel', OrderController.cancelOrder);
 router.post('/:id/return', OrderController.requestReturn);
 router.post('/sub/:subOrderId/cancel', OrderController.cancelSubOrder);
 router.post('/sub/:subOrderId/return', OrderController.requestSubOrderReturn);
+router.post('/returns/:returnRequestId/cancel', OrderController.cancelReturnRequest);
 
 export default router;

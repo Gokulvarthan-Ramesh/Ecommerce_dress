@@ -180,6 +180,9 @@ router.patch('/returns/:id/approve', AdminController.adminApproveReturn);
 router.patch('/returns/:id/reject', AdminController.adminRejectReturn);
 router.patch('/returns/:id/receive', AdminController.adminReceiveReturn);
 
+import { OrderController } from '../controllers/orderController';
+router.post('/orders/sub/:subOrderId/rto', OrderController.markSubOrderRTO);
+
 // Product Moderation
 router.get('/products/pending', AdminController.getPendingProducts);
 router.post('/products/:id/approve', AdminController.approveProduct);
