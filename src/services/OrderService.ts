@@ -1235,7 +1235,7 @@ export class OrderService {
     const { CashfreeService } = require('./cashfreeService');
     const cashfreeSession = await CashfreeService.createOrderSession({
       orderId: order.id,
-      amount: Number(order.paymentAmount),
+      orderAmount: Number(order.paymentAmount),
       customerId: order.userId,
       customerPhone: order.user.phone || '9999999999',
       customerEmail: order.user.email,
