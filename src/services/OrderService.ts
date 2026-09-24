@@ -176,6 +176,64 @@ export class OrderService {
     }
   }
 
+  private static attachApplicableFlags(order: any) {
+    const currentDate = new Date();
+    const nonCancellableStatuses = ['SHIPPED', 'DELIVERED', 'CANCELLED', 'RETURN_REQUESTED', 'RETURNED', 'RTO'];
+
+    order.isCancelApplicable = !nonCancellableStatuses.includes(order.status);
+    let orderReturnApplicable = false;
+
+    if (order.subOrders) {
+      order.subOrders = order.subOrders.map((sub: any) => {
+        sub.isCancelApplicable = !nonCancellableStatuses.includes(sub.status);
+        let subReturnApplicable = false;
+
+        const isNoneReturnStatus = !sub.returnStatus || sub.returnStatus === 'NONE' || sub.returnStatus === 'REJECTED' || sub.returnStatus === 'CANCELLED';
+
+        if (sub.status === 'DELIVERED' && sub.deliveredAt && isNoneReturnStatus) {
+          const daysSinceDelivery = Math.floor((currentDate.getTime() - new Date(sub.deliveredAt).getTime()) / (1000 * 60 * 60 * 24));
+          
+          if (sub.items) {
+            sub.items = sub.items.map((item: any) => {
+              const returnWindowDays = item.product?.returnWindowDays ?? 2;
+              const itemReturnApplicable = daysSinceDelivery <= returnWindowDays;
+              if (itemReturnApplicable) subReturnApplicable = true;
+              return { ...item, isReturnApplicable: itemReturnApplicable, isCancelApplicable: false };
+            });
+          }
+        } else {
+          if (sub.items) {
+            sub.items = sub.items.map((item: any) => ({ ...item, isReturnApplicable: false, isCancelApplicable: false }));
+          }
+        }
+
+        sub.isReturnApplicable = subReturnApplicable;
+        if (subReturnApplicable) orderReturnApplicable = true;
+
+        return sub;
+      });
+    }
+
+    if (order.orderItems) {
+      order.orderItems = order.orderItems.map((item: any) => {
+        const matchedSubItem = order.subOrders?.flatMap((s: any) => s.items || []).find((si: any) => si.id === item.id);
+        return { 
+          ...item, 
+          isReturnApplicable: matchedSubItem ? matchedSubItem.isReturnApplicable : false,
+          isCancelApplicable: false
+        };
+      });
+    }
+
+    order.isReturnApplicable = orderReturnApplicable;
+    
+    // Remove the redundant flat orderItems array to avoid confusing duplication 
+    // since all items are perfectly grouped inside subOrders.items anyway.
+    delete order.orderItems;
+
+    return order;
+  }
+
 
   static async getMyOrders(userId: string, queryString: any) {
     const features = new ApiFeatures(queryString).filter(['id', 'status']).sort().paginate();
@@ -232,42 +290,7 @@ export class OrderService {
     
     const currentDate = new Date();
     
-    const enrichedOrders = orders.map((order: any) => {
-      const enrichedOrder = { ...order, isReturnApplicable: false };
-
-      if (enrichedOrder.status === 'DELIVERED' && enrichedOrder.updatedAt) {
-        const deliveredDays = Math.floor((currentDate.getTime() - new Date(enrichedOrder.updatedAt).getTime()) / (1000 * 60 * 60 * 24));
-        enrichedOrder.orderItems = enrichedOrder.orderItems.map((item: any) => {
-          const returnWindowDays = item.product?.returnWindowDays ?? 2;
-          return { ...item, isReturnApplicable: deliveredDays <= returnWindowDays };
-        });
-        
-        enrichedOrder.isReturnApplicable = enrichedOrder.orderItems.some((item: any) => item.isReturnApplicable);
-      } else {
-        enrichedOrder.orderItems = enrichedOrder.orderItems.map((item: any) => ({ ...item, isReturnApplicable: false }));
-      }
-
-      if (enrichedOrder.subOrders) {
-        enrichedOrder.subOrders = enrichedOrder.subOrders.map((sub: any) => {
-          let isReturnApplicable = false;
-          if (sub.status === 'DELIVERED' && sub.deliveredAt) {
-            const daysSinceDelivery = Math.floor((currentDate.getTime() - new Date(sub.deliveredAt).getTime()) / (1000 * 60 * 60 * 24));
-            
-            sub.items = sub.items.map((subItem: any) => {
-              const returnWindowDays = subItem.product?.returnWindowDays ?? 2;
-              const itemReturnApplicable = daysSinceDelivery <= returnWindowDays;
-              if (itemReturnApplicable) isReturnApplicable = true;
-              return { ...subItem, isReturnApplicable: itemReturnApplicable };
-            });
-          } else {
-            sub.items = sub.items.map((subItem: any) => ({ ...subItem, isReturnApplicable: false }));
-          }
-          return { ...sub, isReturnApplicable };
-        });
-      }
-
-      return enrichedOrder;
-    });
+    const enrichedOrders = orders.map((order: any) => OrderService.attachApplicableFlags(order));
 
     return {
       items: enrichedOrders,
@@ -460,45 +483,7 @@ export class OrderService {
     });
 
     if (!order) return order;
-
-    const currentDate = new Date();
-    
-    const enrichedOrder: any = {
-      ...order,
-      isReturnApplicable: false
-    };
-
-    if (enrichedOrder.status === 'DELIVERED' && enrichedOrder.updatedAt) {
-      const deliveredDays = Math.floor((currentDate.getTime() - new Date(enrichedOrder.updatedAt).getTime()) / (1000 * 60 * 60 * 24));
-      enrichedOrder.orderItems = enrichedOrder.orderItems.map((item: any) => {
-        const returnWindowDays = item.product?.returnWindowDays ?? 2;
-        return { ...item, isReturnApplicable: deliveredDays <= returnWindowDays };
-      });
-      enrichedOrder.isReturnApplicable = enrichedOrder.orderItems.some((item: any) => item.isReturnApplicable);
-    } else {
-      enrichedOrder.orderItems = enrichedOrder.orderItems.map((item: any) => ({ ...item, isReturnApplicable: false }));
-    }
-
-    if (enrichedOrder.subOrders) {
-      enrichedOrder.subOrders = enrichedOrder.subOrders.map((sub: any) => {
-        let isReturnApplicable = false;
-        if (sub.status === 'DELIVERED' && sub.deliveredAt) {
-          const daysSinceDelivery = Math.floor((currentDate.getTime() - new Date(sub.deliveredAt).getTime()) / (1000 * 60 * 60 * 24));
-          
-          sub.items = sub.items.map((subItem: any) => {
-            const returnWindowDays = subItem.product?.returnWindowDays ?? 2;
-            const itemReturnApplicable = daysSinceDelivery <= returnWindowDays;
-            if (itemReturnApplicable) isReturnApplicable = true;
-            return { ...subItem, isReturnApplicable: itemReturnApplicable };
-          });
-        } else {
-          sub.items = sub.items.map((subItem: any) => ({ ...subItem, isReturnApplicable: false }));
-        }
-        return { ...sub, isReturnApplicable };
-      });
-    }
-
-    return enrichedOrder;
+    return OrderService.attachApplicableFlags(order);
   }
 
   static async cancelOrder(userId: string, id: string, reason: string = 'Cancelled by customer') {
