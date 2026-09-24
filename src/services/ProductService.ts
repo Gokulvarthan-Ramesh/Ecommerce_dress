@@ -3,6 +3,167 @@ import { CategoryRepository } from '../repositories/CategoryRepository';
 import { getPagination, formatPaginationResponse } from '../utils/pagination';
 import { AppError } from '../middleware/errorHandler';
 import { prisma } from '../config/db';
+const formatProductOutput = (p: any) => {
+  const mrp = Number(p.basePrice || 0);
+  const sellingPrice = Number(p.sellingPrice || 0);
+  const discountAmount = mrp > sellingPrice ? mrp - sellingPrice : 0;
+  const discountPercentage = mrp > 0 ? ((discountAmount / mrp) * 100).toFixed(1) : 0;
+
+  const totalStock = p.variants ? p.variants.reduce((sum: number, v: any) => sum + (v.stockQuantity || 0), 0) : 0;
+  
+  let formattedSpecs: any = p.specifications;
+  if (p.specifications && typeof p.specifications === 'object' && !Array.isArray(p.specifications)) {
+    formattedSpecs = Object.entries(p.specifications).map(([key, value]) => ({ key, value }));
+  }
+
+  return {
+    id: p.id,
+    name: p.name,
+    slug: p.slug,
+    description: p.description,
+    brand: p.brand,
+    productType: p.productType,
+    category: p.category,
+    attributes: {
+      fabric: p.fabric,
+      fit: p.fit,
+      pattern: p.pattern,
+      gender: p.gender,
+      occasion: p.occasion,
+      neckType: p.neckType,
+      sleeve: p.sleeve,
+      packSize: p.packSize,
+      ...((p.attributes as any) || {})
+    },
+    media: {
+      images: (p.images || []).map((img: any) => ({
+        url: img.imageUrl,
+        alt: img.altText || p.name,
+        position: img.sortOrder || 1
+      })),
+      videoUrl: p.videoUrl || null,
+    },
+    highlights: [
+      { key: 'fabric', label: 'Fabric', value: p.fabric },
+      { key: 'fit', label: 'Fit', value: p.fit },
+      { key: 'pattern', label: 'Pattern', value: p.pattern },
+      { key: 'packSize', label: 'Pack', value: p.packSize ? `Pack of ${p.packSize}` : null },
+      { key: 'gender', label: 'Gender', value: p.gender },
+      { key: 'occasion', label: 'Occasion', value: p.occasion },
+      { key: 'neckType', label: 'Neck Type', value: p.neckType },
+    ].filter(h => h.value),
+    specifications: [
+      {
+        heading: "General",
+        items: [
+          { key: "brand", label: "Brand", value: p.brand },
+          { key: "productType", label: "Product Type", value: p.productType },
+          { key: "gender", label: "Gender", value: p.gender },
+          { key: "occasion", label: "Occasion", value: p.occasion },
+          { key: "season", label: "Season", value: (p.attributes as any)?.season },
+          { key: "targetAudience", label: "Target Audience", value: (p.attributes as any)?.targetAudience }
+        ].filter(i => i.value)
+      },
+      {
+        heading: "Material & Design",
+        items: [
+          { key: "fabric", label: "Fabric", value: p.fabric },
+          { key: "materialComposition", label: "Material Composition", value: (p.specifications as any)?.["Material Composition"] },
+          { key: "fit", label: "Fit", value: p.fit },
+          { key: "pattern", label: "Pattern", value: p.pattern },
+          { key: "neckType", label: "Neck Type", value: p.neckType },
+          { key: "sleeve", label: "Sleeve", value: p.sleeve },
+          { key: "transparency", label: "Transparency", value: (p.specifications as any)?.["Transparency"] }
+        ].filter(i => i.value)
+      },
+      {
+        heading: "Size & Fit",
+        items: [
+          { key: "availableSizes", label: "Available Sizes", value: p.variants ? Array.from(new Set(p.variants.map((v: any) => v.size))).join(', ') : null },
+          { key: "packSize", label: "Pack Size", value: p.packSize ? `${p.packSize} Shirts` : null }
+        ].filter(i => i.value)
+      },
+      {
+        heading: "Dimensions & Weight",
+        items: [
+          { key: "weight", label: "Weight", value: p.weight ? `${p.weight} kg` : null },
+          { key: "length", label: "Length", value: p.length ? `${p.length} cm` : null },
+          { key: "width", label: "Width", value: p.width ? `${p.width} cm` : null },
+          { key: "height", label: "Height", value: p.height ? `${p.height} cm` : null },
+        ].filter(i => i.value)
+      },
+      {
+        heading: "Care Instructions",
+        items: [
+          { key: "washCare", label: "Wash Care", value: p.washCare }
+        ].filter(i => i.value)
+      },
+      {
+        heading: "Warranty & Returns",
+        items: [
+          { key: "warranty", label: "Warranty", value: (p.specifications as any)?.["Warranty"] || "No Warranty" },
+          { key: "returnable", label: "Returnable", value: p.isReturnable ? "Yes" : "No" },
+          { key: "returnWindow", label: "Return Window", value: p.returnWindowDays ? `${p.returnWindowDays} Days` : null },
+          { key: "exchangeable", label: "Exchangeable", value: p.isExchangeable ? "Yes" : "No" },
+        ].filter(i => i.value)
+      },
+      {
+        heading: "Origin",
+        items: [
+          { key: "countryOfOrigin", label: "Country of Origin", value: p.countryOfOrigin }
+        ].filter(i => i.value)
+      }
+    ].filter(s => s.items.length > 0),
+    variants: (p.variants || []).map((v: any) => ({
+      ...v,
+      inStock: v.stockQuantity > 0,
+    })),
+    pricing: {
+      mrp: mrp,
+      sellingPrice: sellingPrice,
+      discountAmount: discountAmount,
+      discountPercentage: Number(discountPercentage),
+      currency: "INR"
+    },
+    inventory: {
+      minStock: p.minStock || 0,
+      totalStock,
+      inStock: totalStock > 0,
+      maxOrderQuantity: p.maxOrderQuantity
+    },
+    shipping: {
+      weight: p.weight ? `${p.weight} kg` : null,
+      dimensions: {
+        length: p.length ? `${p.length} cm` : null,
+        width: p.width ? `${p.width} cm` : null,
+        height: p.height ? `${p.height} cm` : null,
+      },
+      countryOfOrigin: p.countryOfOrigin
+    },
+    returnPolicy: {
+      isReturnable: p.isReturnable,
+      returnWindowDays: p.returnWindowDays,
+      isExchangeable: p.isExchangeable
+    },
+    tags: p.tags || [],
+    badges: {
+      isNewArrival: p.isNewArrival,
+      isBestSeller: p.isBestSeller,
+      isFeatured: p.isFeatured
+    },
+    seo: {
+      title: p.seoTitle,
+      description: p.seoDescription
+    },
+    status: {
+      isActive: p.isActive
+    },
+    timestamps: {
+      createdAt: p.createdAt,
+      updatedAt: p.updatedAt
+    }
+  };
+};
 
 export class ProductService {
   static async getSpecificationKeys(categoryId?: string): Promise<any> {
@@ -13,15 +174,15 @@ export class ProductService {
       where: { id: categoryId },
       select: { specificationKeys: true, parentId: true }
     });
-    
+
     if (category?.specificationKeys) {
       return category.specificationKeys;
     }
-    
+
     if (category?.parentId) {
       return this.getSpecificationKeys(category.parentId);
     }
-    
+
     return [];
   }
 
@@ -116,7 +277,7 @@ export class ProductService {
         const lvl = parseInt(String(level), 10);
         if (!isNaN(lvl)) levelsArray.push(lvl);
       }
-      
+
       if (levelsArray.length > 0) {
         andConditions.push({ level: { in: levelsArray } });
       }
@@ -138,11 +299,11 @@ export class ProductService {
         where: { isActive: true },
         select: { id: true, parentId: true, _count: { select: { products: true } } }
       });
-      
+
       const validCategoryIds = new Set<string>();
       const childrenMap = new Map<string, string[]>();
       const categoryMap = new Map(allCategories.map((c: any) => [c.id, c]));
-      
+
       for (const c of allCategories) {
         if (c.parentId) {
           if (!childrenMap.has(c.parentId)) childrenMap.set(c.parentId, []);
@@ -153,7 +314,7 @@ export class ProductService {
       const checkHasProducts = (id: string): boolean => {
         const category = categoryMap.get(id);
         if (!category) return false;
-        
+
         let hasValidChildren = false;
         const children = childrenMap.get(id) || [];
         for (const childId of children) {
@@ -161,7 +322,7 @@ export class ProductService {
             hasValidChildren = true;
           }
         }
-        
+
         if (category._count?.products > 0 || hasValidChildren) {
           validCategoryIds.add(id);
           return true;
@@ -173,7 +334,7 @@ export class ProductService {
       for (const root of roots) {
         checkHasProducts(root.id);
       }
-      
+
       andConditions.push({ id: { in: Array.from(validCategoryIds) } });
     }
 
@@ -349,11 +510,11 @@ export class ProductService {
       mainSlug,
       parent: category.parent
         ? {
-            id: category.parent.id,
-            name: category.parent.name,
-            slug: category.parent.slug,
-            level: category.parent.level,
-          }
+          id: category.parent.id,
+          name: category.parent.name,
+          slug: category.parent.slug,
+          level: category.parent.level,
+        }
         : null,
       breadcrumbs,
       name: category.name,
@@ -544,7 +705,7 @@ export class ProductService {
               parent: { select: { id: true, name: true, slug: true } },
             },
           },
-
+          images: { orderBy: { sortOrder: 'asc' } },
           variants: {
             where: { isActive: true },
             select: {
@@ -569,7 +730,7 @@ export class ProductService {
     ]);
 
     return {
-      products,
+      products: products.map(formatProductOutput),
       pagination: formatPaginationResponse(total, pageNum, limitNum),
     };
   }
@@ -581,8 +742,15 @@ export class ProductService {
         isActive: true,
       },
       include: {
-        category: true,
-
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            parent: { select: { id: true, name: true, slug: true } },
+          },
+        },
+        images: { orderBy: { sortOrder: 'asc' } },
         variants: {
           where: { isActive: true },
           orderBy: [{ color: 'asc' }, { size: 'asc' }],
@@ -594,17 +762,7 @@ export class ProductService {
       throw new AppError('Product not found or currently unavailable', 404);
     }
 
-    const availableColors = Array.from(
-      new Set(product.variants.map((v) => JSON.stringify({ color: v.color, hex: v.colorHex })))
-    ).map((item) => JSON.parse(item));
-
-    const availableSizes = Array.from(new Set(product.variants.map((v) => v.size)));
-
-    return {
-      ...product,
-      availableColors,
-      availableSizes,
-    };
+    return formatProductOutput(product);
   }
 
   static async getSuggestedProducts(identifier: string) {
@@ -661,7 +819,7 @@ export class ProductService {
     if (products.length < 10) {
       const remainingCount = 10 - products.length;
       const excludeIds = [product.id, ...products.map((p) => p.id)];
-      
+
       const fallbackProducts = await ProductRepository.findMany({
         where: {
           isActive: true,
@@ -750,7 +908,7 @@ export class ProductService {
     });
 
     // Sort products based on the exact order of productIds provided by the client
-    const sortedProducts = validIds.map(id => 
+    const sortedProducts = validIds.map(id =>
       products.find(p => p.id === id || p.slug === id)
     ).filter(Boolean);
 

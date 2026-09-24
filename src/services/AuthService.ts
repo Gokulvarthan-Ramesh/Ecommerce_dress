@@ -9,7 +9,7 @@ import { WalletService } from './walletService';
 import { ReferralService } from './referralService';
 import { WhatsAppService } from './whatsappService';
 import { prisma } from '../config/db';
-import { Role } from '@prisma/client';
+import { Role, WalletTxType, WalletTxCategory } from '@prisma/client';
 import { cleanIndianPhoneNumber } from '../utils/phone';
 
 export class AuthService {
@@ -136,7 +136,21 @@ export class AuthService {
         role: Role.CUSTOMER,
         referralCode: userReferralCode,
         referredById: referrerId, // Save referred_by_user_id directly
-        wallet: { create: { balance: 0.0 } }, // 6. Create wallet
+        wallet: {
+          create: {
+            balance: 300.0,
+            transactions: {
+              create: {
+                amount: 300.0,
+                balanceBefore: 0.0,
+                balanceAfter: 300.0,
+                type: WalletTxType.CREDIT,
+                category: WalletTxCategory.ADMIN_ADJUSTMENT,
+                description: 'Welcome Bonus',
+              }
+            }
+          }
+        }, // 6. Create wallet with welcome bonus
       },
     }) as any;
 
