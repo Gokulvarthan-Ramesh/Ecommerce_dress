@@ -1178,4 +1178,45 @@ export class ProductService {
       sortOptions,
     };
   }
+
+  static async subscribeNotifyMe(userId: string, variantId: string) {
+    if (!variantId) {
+      throw new AppError('Variant ID is required', 400);
+    }
+
+    const variant = await prisma.productVariant.findUnique({
+      where: { id: variantId },
+      include: { product: true }
+    });
+
+    if (!variant) {
+      throw new AppError('Variant not found', 404);
+    }
+
+    if (variant.stockQuantity > 0) {
+      throw new AppError('Product is currently in stock. You can purchase it now!', 400);
+    }
+
+    const existing = await (prisma as any).backInStockSubscription.findFirst({
+      where: {
+        userId,
+        variantId,
+        status: 'PENDING'
+      }
+    });
+
+    if (existing) {
+      return { message: 'You are already subscribed. We will notify you when it is back in stock!' };
+    }
+
+    await (prisma as any).backInStockSubscription.create({
+      data: {
+        userId,
+        variantId,
+        status: 'PENDING'
+      }
+    });
+
+    return { message: 'Subscribed successfully. You will be notified when this item is back in stock.' };
+  }
 }

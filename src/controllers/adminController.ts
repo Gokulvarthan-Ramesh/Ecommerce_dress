@@ -1821,6 +1821,65 @@ export class AdminController {
         },
       });
 
+      // NOTIFY ME LOGIC
+      if (existing.stockQuantity <= 0 && updated.stockQuantity > 0) {
+        // Run in background to avoid blocking the response
+        (async () => {
+          try {
+            const pendingSubscriptions = await (prisma as any).backInStockSubscription.findMany({
+              where: { variantId: variantId, status: 'PENDING' },
+              include: { user: true, variant: { include: { product: true } } }
+            });
+
+            if (pendingSubscriptions.length > 0) {
+              const { NotificationService } = require('../services/notificationService');
+              const { WhatsappService } = require('../services/whatsappService');
+
+              for (const sub of pendingSubscriptions) {
+                // RATE LIMIT CHECK: Max 3 per 7 days
+                const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+                const recentNotifications = await (prisma as any).backInStockSubscription.count({
+                  where: {
+                    userId: sub.userId,
+                    status: { in: ['NOTIFIED', 'NOTIFIED_RATE_LIMITED'] },
+                    updatedAt: { gte: sevenDaysAgo }
+                  }
+                });
+
+                if (recentNotifications >= 3) {
+                  await (prisma as any).backInStockSubscription.update({
+                    where: { id: sub.id },
+                    data: { status: 'NOTIFIED_RATE_LIMITED' }
+                  });
+                  continue;
+                }
+
+                const productName = sub.variant.product.name;
+                const sizeColor = `${sub.variant.color} - ${sub.variant.size}`;
+                const message = `Good news! ${productName} (${sizeColor}) is back in stock. Hurry before it runs out again!`;
+
+                // Optionally send In-App Notification
+                if (NotificationService) {
+                  await NotificationService.createNotification(sub.userId, 'Back in Stock!', message, 'BACK_IN_STOCK');
+                }
+                
+                // Optionally send WhatsApp
+                if (WhatsappService && sub.user.phone) {
+                  await WhatsappService.sendMessage(sub.user.phone, message).catch((e: any) => console.log('WhatsApp send failed', e));
+                }
+
+                await (prisma as any).backInStockSubscription.update({
+                  where: { id: sub.id },
+                  data: { status: 'NOTIFIED' }
+                });
+              }
+            }
+          } catch (e) {
+            console.error('Failed to process Back In Stock notifications:', e);
+          }
+        })();
+      }
+
       ApiResponse.success(res, updated, 'Variant updated successfully');
     } catch (error) {
       next(error);

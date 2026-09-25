@@ -93,4 +93,21 @@ export class ProductController {
       next(error);
     }
   }
+
+  static async notifyMe(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { variantId } = req.body;
+      const userId = req.user?.id;
+      
+      if (!userId) {
+        ApiResponse.error(res, 'User must be authenticated to use Notify Me', 401);
+        return;
+      }
+      
+      const result = await ProductService.subscribeNotifyMe(userId, variantId);
+      ApiResponse.success(res, result, 'Successfully subscribed to back-in-stock notifications.');
+    } catch (error) {
+      next(error);
+    }
+  }
 }

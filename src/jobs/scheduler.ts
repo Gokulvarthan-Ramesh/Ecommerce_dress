@@ -2,6 +2,7 @@ import cron from 'node-cron';
 import { cancelExpiredPendingOrders } from './cancelExpiredOrders';
 import { deactivateExpiredOffers } from './deactivateExpiredOffers';
 import { processReferralRewards } from './processReferralRewards';
+import { processRestockNotifications } from './processRestockNotifications';
 
 /**
  * Simple V1 scheduler using node-cron.
@@ -36,8 +37,15 @@ export function startScheduler() {
     await processReferralRewards();
   });
 
+  // Every 5 minutes: Send out back-in-stock notifications
+  cron.schedule('*/5 * * * *', async () => {
+    console.log('[SCHEDULER] Running: processRestockNotifications');
+    await processRestockNotifications();
+  });
+
   console.log('[SCHEDULER] Background jobs registered:');
   console.log('  - cancelExpiredPendingOrders  (every 5 min)');
+  console.log('  - processRestockNotifications (every 5 min)');
   console.log('  - deactivateExpiredOffers     (every 15 min)');
   console.log('  - processReferralRewards      (every hour)');
 }
