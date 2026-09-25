@@ -9,7 +9,8 @@ export type NotificationType =
   | 'REFUND_COMPLETED'
   | 'REFERRAL_REWARD'
   | 'WALLET_CREDIT'
-  | 'ORDER_CANCELLED';
+  | 'ORDER_CANCELLED'
+  | 'BACK_IN_STOCK';
 
 export class NotificationService {
   /**

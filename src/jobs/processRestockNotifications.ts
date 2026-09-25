@@ -1,6 +1,6 @@
 import { prisma } from '../config/db';
 import { NotificationService } from '../services/notificationService';
-import { WhatsappService } from '../services/whatsappService';
+import { WhatsAppService } from '../services/whatsappService';
 
 export const processRestockNotifications = async () => {
   try {
@@ -52,13 +52,17 @@ export const processRestockNotifications = async () => {
 
       // 1. In-App Notification
       if (NotificationService) {
-        await NotificationService.createNotification(sub.userId, 'Back in Stock!', message, 'BACK_IN_STOCK')
-          .catch((e: any) => console.error('Failed to send in-app notification', e));
+        await NotificationService.create({
+          userId: sub.userId,
+          title: 'Back in Stock!',
+          message: message,
+          type: 'BACK_IN_STOCK'
+        }).catch((e: any) => console.error('Failed to send in-app notification', e));
       }
       
       // 2. WhatsApp Message
-      if (WhatsappService && sub.user.phone) {
-        await WhatsappService.sendMessage(sub.user.phone, message)
+      if (WhatsAppService && sub.user.phone) {
+        await WhatsAppService.sendMessage(sub.user.phone, message)
           .catch((e: any) => console.error('WhatsApp send failed', e));
       }
 

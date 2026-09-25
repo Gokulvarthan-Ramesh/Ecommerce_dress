@@ -1833,7 +1833,7 @@ export class AdminController {
 
             if (pendingSubscriptions.length > 0) {
               const { NotificationService } = require('../services/notificationService');
-              const { WhatsappService } = require('../services/whatsappService');
+              const { WhatsAppService } = require('../services/whatsappService');
 
               for (const sub of pendingSubscriptions) {
                 // RATE LIMIT CHECK: Max 3 per 7 days
@@ -1860,12 +1860,17 @@ export class AdminController {
 
                 // Optionally send In-App Notification
                 if (NotificationService) {
-                  await NotificationService.createNotification(sub.userId, 'Back in Stock!', message, 'BACK_IN_STOCK');
+                  await NotificationService.create({
+                    userId: sub.userId,
+                    title: 'Back in Stock!',
+                    message: message,
+                    type: 'BACK_IN_STOCK'
+                  });
                 }
                 
                 // Optionally send WhatsApp
-                if (WhatsappService && sub.user.phone) {
-                  await WhatsappService.sendMessage(sub.user.phone, message).catch((e: any) => console.log('WhatsApp send failed', e));
+                if (WhatsAppService && sub.user.phone) {
+                  await WhatsAppService.sendMessage(sub.user.phone, message).catch((e: any) => console.log('WhatsApp send failed', e));
                 }
 
                 await (prisma as any).backInStockSubscription.update({

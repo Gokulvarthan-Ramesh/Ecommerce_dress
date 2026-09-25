@@ -97,4 +97,59 @@ export class WhatsAppService {
       simulated: true,
     };
   }
+
+  /**
+   * Send a general text message via WhatsApp (e.g., Order Updates, Back in Stock alerts)
+   */
+  static async sendMessage(phone: string, messageText: string): Promise<{ success: boolean; message: string; simulated?: boolean }> {
+    const formattedNumber = this.formatWhatsAppNumber(phone);
+
+    const metaToken = ENV.WHATSAPP.API_TOKEN || process.env.WHATSAPP_API_TOKEN;
+    const metaPhoneId = ENV.WHATSAPP.PHONE_ID || process.env.WHATSAPP_PHONE_ID;
+
+    if (metaToken && metaPhoneId) {
+      try {
+        const payload = {
+          messaging_product: 'whatsapp',
+          to: formattedNumber,
+          type: 'text',
+          text: { body: messageText },
+        };
+
+        const response = await fetch(`https://graph.facebook.com/v18.0/${metaPhoneId}/messages`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${metaToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await response.json() as any;
+        if (!response.ok) {
+          console.error('[WHATSAPP TEXT ERROR]:', data);
+          return { success: false, message: data.error?.message || 'Failed to dispatch WhatsApp message' };
+        }
+
+        console.log(`[WHATSAPP TEXT SENT LIVE] to +${formattedNumber}`);
+        return { success: true, message: 'Message sent successfully' };
+      } catch (err: any) {
+        console.error('[WHATSAPP NETWORK ERROR]:', err);
+        return { success: false, message: 'WhatsApp gateway network failure' };
+      }
+    }
+
+    // SIMULATION FALLBACK
+    console.log('====================================================');
+    console.log(`📲 [WHATSAPP MESSAGE SIMULATOR]`);
+    console.log(`📞 To: +${formattedNumber}`);
+    console.log(`💬 Message: "${messageText}"`);
+    console.log('====================================================');
+
+    return {
+      success: true,
+      message: 'Message sent via WhatsApp (Simulation mode)',
+      simulated: true,
+    };
+  }
 }
