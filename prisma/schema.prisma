@@ -49,6 +49,26 @@ model User {
   @@map("users")
 }
 
+model VendorUser {
+  id           String           @id @default(uuid())
+  name         String
+  email        String?          @unique
+  phone        String           @unique
+  passwordHash String?
+  isActive     Boolean          @default(true)
+  status       VendorUserStatus @default(PENDING)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  vendorApplication VendorApplication?
+  ownedShops        Shop[]             @relation("ShopVendorOwner")
+  vendorAuditLogs   VendorAuditLog[]   @relation("VendorAuditVendorUser")
+
+  @@index([phone])
+  @@index([email])
+  @@map("vendor_users")
+}
+
 model Address {
   id           String   @id @default(uuid())
   userId       String
@@ -838,14 +858,14 @@ model Banner {
 }
 
 model Shop {
-  id                  String            @id @default(uuid())
+  id                  String             @id @default(uuid())
   ownerId             String
   name                String
-  slug                String            @unique
+  slug                String             @unique
   description         String?
   logoUrl             String?
   bannerUrl           String?
-  status              ShopStatus        @default(PENDING_VERIFICATION)
+  status              ShopStatus         @default(PENDING_VERIFICATION)
   businessEmail       String?
   businessPhone       String?
   supportPhone        String?
@@ -853,26 +873,28 @@ model Shop {
   city                String?
   state               String?
   pincode             String?
-  latitude            Decimal?          @db.Decimal(10, 7)
-  longitude           Decimal?          @db.Decimal(10, 7)
-  deliveryEnabled     Boolean           @default(true)
-  deliveryRadiusKm    Decimal           @default(20.00) @db.Decimal(6, 2)
-  usePincodeRules     Boolean           @default(true)
-  useRegionRules      Boolean           @default(false)
-  useCountryRules     Boolean           @default(false)
+  latitude            Decimal?           @db.Decimal(10, 7)
+  longitude           Decimal?           @db.Decimal(10, 7)
+  deliveryEnabled     Boolean            @default(true)
+  deliveryRadiusKm    Decimal            @default(20.00) @db.Decimal(6, 2)
+  usePincodeRules     Boolean            @default(true)
+  useRegionRules      Boolean            @default(false)
+  useCountryRules     Boolean            @default(false)
   gstin               String?
   panNumber           String?
   bankAccountNumber   String?
   bankIfsc            String?
   bankBeneficiaryName String?
-  commissionRate      Decimal           @default(10.00) @db.Decimal(5, 2)
-  balance             Decimal           @default(0.00) @db.Decimal(10, 2)
-  totalEarned         Decimal           @default(0.00) @db.Decimal(10, 2)
-  isOpen              Boolean           @default(true)
-  rating              Decimal           @default(5.00) @db.Decimal(3, 2)
-  reviewCount         Int               @default(0)
-  createdAt           DateTime          @default(now())
-  updatedAt           DateTime          @updatedAt
+  commissionRate      Decimal            @default(10.00) @db.Decimal(5, 2)
+  balance             Decimal            @default(0.00) @db.Decimal(10, 2)
+  totalEarned         Decimal            @default(0.00) @db.Decimal(10, 2)
+  isOpen              Boolean            @default(true)
+  rating              Decimal            @default(5.00) @db.Decimal(3, 2)
+  reviewCount         Int                @default(0)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  vendorApplicationId String?            @unique
+  vendorOwnerId       String?
   coupons             Coupon[]
   deliveryRules       DeliveryRule[]
   orderItems          OrderItem[]
@@ -881,11 +903,14 @@ model Shop {
   members             ShopMember[]
   payouts             ShopPayout[]
   serviceAreas        ShopServiceArea[]
-  owner               User              @relation("ShopOwner", fields: [ownerId], references: [id])
+  owner               User               @relation("ShopOwner", fields: [ownerId], references: [id])
+  vendorOwner         VendorUser?        @relation("ShopVendorOwner", fields: [vendorOwnerId], references: [id])
   subOrders           SubOrder[]
   supportTickets      SupportTicket[]
+  vendorApplication   VendorApplication? @relation(fields: [vendorApplicationId], references: [id])
 
   @@index([status])
+  @@index([vendorOwnerId])
   @@index([ownerId])
   @@map("shops")
 }
@@ -1189,10 +1214,46 @@ model Icon {
   @@map("icons")
 }
 
+enum VendorUserStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  DEACTIVATED
+}
+
 enum Role {
   CUSTOMER
   ADMIN
   VENDOR
+}
+
+enum VendorApplicationStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  CHANGES_REQUESTED
+  APPROVED
+  REJECTED
+  SUSPENDED
+  DEACTIVATED
+}
+
+enum DocumentStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum BankAccountStatus {
+  PENDING_VERIFICATION
+  VERIFIED
+  REJECTED
+}
+
+enum PickupAddressStatus {
+  PENDING
+  VERIFIED
+  REJECTED
 }
 
 enum OrderStatus {
@@ -1394,4 +1455,144 @@ model BackInStockSubscription {
   @@index([variantId])
   @@index([status])
   @@map("back_in_stock_subscriptions")
+}
+
+// ==========================================
+// A-Z VENDOR SYSTEM MODELS
+// ==========================================
+
+model VendorApplication {
+  id           String                  @id @default(uuid())
+  vendorUserId String                  @unique
+  status       VendorApplicationStatus @default(DRAFT)
+
+  // Core profile
+  ownerName     String
+  businessEmail String?
+  businessPhone String?
+  description   String?
+
+  // Shop details
+  shopName       String
+  shopLogoUrl    String?
+  shopBannerUrl  String?
+  shopCategoryId String?
+
+  // Business info
+  businessType String? // e.g., "INDIVIDUAL", "PARTNERSHIP", "COMPANY"
+  gstin        String?
+  panNumber    String?
+
+  // Admin review
+  reviewedByAdminId String?
+  reviewRemarks     String?
+  reviewedAt        DateTime?
+
+  // Timestamps
+  submittedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  vendorUser    VendorUser           @relation(fields: [vendorUserId], references: [id])
+  documents     VendorDocument[]
+  bankAccount   VendorBankAccount?
+  pickupAddress VendorPickupAddress?
+  shop          Shop?
+  auditLogs     VendorAuditLog[]
+
+  @@index([status])
+  @@index([vendorUserId])
+  @@map("vendor_applications")
+}
+
+model VendorDocument {
+  id                String         @id @default(uuid())
+  applicationId     String
+  docType           String // e.g., "PAN_CARD", "GST_CERTIFICATE", "AADHAAR", "CANCELLED_CHEQUE"
+  fileName          String?
+  fileUrl           String
+  status            DocumentStatus @default(PENDING)
+  verifiedByAdminId String?
+  remarks           String?
+  verifiedAt        DateTime?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  application VendorApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
+  @@index([status])
+  @@map("vendor_documents")
+}
+
+model VendorBankAccount {
+  id                String            @id @default(uuid())
+  applicationId     String            @unique
+  accountNumber     String
+  ifsc              String
+  beneficiaryName   String
+  bankName          String?
+  branchName        String?
+  accountType       String?           @default("SAVINGS") // SAVINGS, CURRENT
+  status            BankAccountStatus @default(PENDING_VERIFICATION)
+  verifiedByAdminId String?
+  remarks           String?
+  verifiedAt        DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  application VendorApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@map("vendor_bank_accounts")
+}
+
+model VendorPickupAddress {
+  id                String              @id @default(uuid())
+  applicationId     String              @unique
+  contactName       String?
+  contactPhone      String?
+  addressLine       String
+  landmark          String?
+  city              String
+  state             String
+  pincode           String
+  country           String              @default("India")
+  latitude          Decimal             @db.Decimal(10, 7)
+  longitude         Decimal             @db.Decimal(10, 7)
+  status            PickupAddressStatus @default(PENDING)
+  verifiedByAdminId String?
+  remarks           String?
+  verifiedAt        DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  application VendorApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@map("vendor_pickup_addresses")
+}
+
+model VendorAuditLog {
+  id              String   @id @default(uuid())
+  applicationId   String?
+  performedBy     String? // admin userId (from User table)
+  vendorPerformer String? // vendorUserId (from VendorUser table)
+  action          String // CREATE, UPDATE, STATUS_CHANGE, DOCUMENT_UPLOAD, DOCUMENT_VERIFY, BANK_VERIFY, ADDRESS_VERIFY, APPROVAL, REJECTION
+  entity          String // VendorApplication, VendorDocument, VendorBankAccount, VendorPickupAddress
+  entityId        String
+  oldValue        Json? // snapshot of changed fields (before)
+  newValue        Json? // snapshot of changed fields (after)
+  remarks         String?
+  ipAddress       String?
+  createdAt       DateTime @default(now())
+
+  application VendorApplication? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  vendorUser  VendorUser?        @relation("VendorAuditVendorUser", fields: [vendorPerformer], references: [id])
+
+  @@index([applicationId])
+  @@index([performedBy])
+  @@index([vendorPerformer])
+  @@index([entity, entityId])
+  @@index([createdAt])
+  @@map("vendor_audit_logs")
 }

@@ -1,0 +1,1203 @@
+{
+	"info": {
+		"_postman_id": "vendor-system-separate-auth-v3",
+		"name": "🏪 Vendor System — Complete A-Z Collection",
+		"description": "Full vendor system with SEPARATE vendor authentication.\nVendors register and login independently from customers.\n\nFlow:\n1. Vendor Register (OTP) → vendorToken\n2. Create Application (DRAFT)\n3. Fill: Documents + Bank + Pickup Address\n4. Submit for Review\n5. Admin Approves → Shop Created\n6. Vendor manages Shop/Products/Orders/Payouts\n\nTokens:\n- vendorToken = Vendor JWT (type: VENDOR)\n- adminToken = Admin JWT (from /auth/admin/login)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{ "key": "baseUrl", "value": "http://localhost:5000/api/v1" },
+		{ "key": "vendorToken", "value": "" },
+		{ "key": "adminToken", "value": "" },
+		{ "key": "applicationId", "value": "" },
+		{ "key": "documentId", "value": "" },
+		{ "key": "bankAccountId", "value": "" },
+		{ "key": "pickupAddressId", "value": "" },
+		{ "key": "shopId", "value": "" },
+		{ "key": "productId", "value": "" },
+		{ "key": "subOrderId", "value": "" },
+		{ "key": "payoutId", "value": "" },
+		{ "key": "serviceAreaId", "value": "" }
+	],
+	"item": [
+		{
+			"name": "🔐 1. Vendor Auth (Separate from Customer)",
+			"description": "Vendors have their own VendorUser table. Register/login via Phone + OTP.\nNo customer account needed. JWT token includes type='VENDOR'.",
+			"item": [
+				{
+					"name": "1.1 Send Register OTP",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"phone\": \"8888888888\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/vendor/auth/register/send-otp",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "auth", "register", "send-otp"]
+						},
+						"description": "Send OTP for vendor registration. Fails if phone already registered as vendor."
+					}
+				},
+				{
+					"name": "1.2 Register Vendor (OTP + Name)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var json = pm.response.json();",
+									"if (json.data && json.data.token) {",
+									"    pm.collectionVariables.set('vendorToken', json.data.token);",
+									"    console.log('✅ vendorToken saved');",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"phone\": \"8888888888\",\n  \"otp\": \"123456\",\n  \"name\": \"Rahul Sharma\",\n  \"email\": \"rahul@fashion.com\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/vendor/auth/register",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "auth", "register"]
+						},
+						"description": "Register new VendorUser. Creates record in vendor_users table.\nReturns JWT with { type: 'VENDOR' }.\nVendorUser status = PENDING until admin approves."
+					}
+				},
+				{
+					"name": "1.3 Send Login OTP",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"phone\": \"8888888888\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/vendor/auth/login/send-otp",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "auth", "login", "send-otp"]
+						},
+						"description": "Send OTP for vendor login. Fails if phone not registered as vendor."
+					}
+				},
+				{
+					"name": "1.4 Login Vendor",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var json = pm.response.json();",
+									"if (json.data && json.data.token) {",
+									"    pm.collectionVariables.set('vendorToken', json.data.token);",
+									"    console.log('✅ vendorToken saved');",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"phone\": \"8888888888\",\n  \"otp\": \"123456\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/vendor/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "auth", "login"]
+						},
+						"description": "Login existing vendor. Returns JWT with { type: 'VENDOR' }."
+					}
+				},
+				{
+					"name": "1.5 Resend OTP",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"phone\": \"8888888888\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/vendor/auth/resend-otp",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "auth", "resend-otp"]
+						},
+						"description": "Resend OTP. Rate limited to 60 seconds."
+					}
+				},
+				{
+					"name": "1.6 Get Vendor Profile",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{vendorToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/vendor/auth/profile",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "auth", "profile"]
+						},
+						"description": "Returns vendor profile with application status and shop list."
+					}
+				},
+				{
+					"name": "1.7 Update Vendor Profile",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{vendorToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Rahul K Sharma\",\n  \"email\": \"rahul.updated@fashion.com\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/vendor/auth/profile",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "auth", "profile"]
+						},
+						"description": "Update vendor name and email."
+					}
+				}
+			]
+		},
+		{
+			"name": "🚀 1B. Register Vendor + Shop (One-Shot)",
+			"description": "One API call: Send OTP → Register with all shop details.\nNo bearer token needed. Creates VendorUser + Shop (PENDING_VERIFICATION).",
+			"item": [
+				{
+					"name": "1B.1 Send Register OTP",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"phone\": \"8888888888\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/vendor/auth/register/send-otp",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "auth", "register", "send-otp"]
+						},
+						"description": "Step 1: Send OTP to vendor phone."
+					}
+				},
+				{
+					"name": "1B.2 Register Vendor + Create Shop",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var json = pm.response.json();",
+									"if (json.data && json.data.token) {",
+									"    pm.collectionVariables.set('vendorToken', json.data.token);",
+									"    console.log('✅ vendorToken saved');",
+									"}",
+									"if (json.data && json.data.shop && json.data.shop.id) {",
+									"    pm.collectionVariables.set('shopId', json.data.shop.id);",
+									"    console.log('✅ shopId saved: ' + json.data.shop.id);",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"phone\": \"8888888888\",\n  \"otp\": \"123456\",\n  \"ownerName\": \"Rahul Sharma\",\n  \"email\": \"rahul@fashion.com\",\n  \"name\": \"My Awesome Boutique\",\n  \"description\": \"Best clothing in town!\",\n  \"latitude\": 19.0760,\n  \"longitude\": 72.8777,\n  \"businessEmail\": \"vendor@business.com\",\n  \"businessPhone\": \"9876543210\",\n  \"supportPhone\": \"9876543210\",\n  \"addressLine\": \"123 Market St\",\n  \"city\": \"Mumbai\",\n  \"state\": \"Maharashtra\",\n  \"pincode\": \"400001\",\n  \"gstin\": \"27AAAAA0000A1Z5\",\n  \"panNumber\": \"ABCDE1234F\",\n  \"bankAccountNumber\": \"1234567890\",\n  \"bankIfsc\": \"HDFC0001234\",\n  \"bankBeneficiaryName\": \"John Doe\",\n  \"logoUrl\": \"https://example.com/logo.png\",\n  \"bannerUrl\": \"https://example.com/banner.png\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/vendor/register",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "register"]
+						},
+						"description": "Step 2: Register vendor + create shop in one call.\nRequired: phone, otp, ownerName, name (shop name).\nAll other fields are optional.\nReturns: vendorToken + shop (PENDING_VERIFICATION)."
+					}
+				}
+			]
+		},
+		{
+			"name": "📝 2. Vendor Application (Multi-Step Onboarding)",
+			"description": "Create and manage vendor application. Requires vendorToken.\nApplication has 5 steps: Basic Info → Business Info → Documents → Bank → Pickup Address.\nSubmit when ready → Admin reviews.",
+			"item": [
+				{
+					"name": "2.1 Create Application (DRAFT)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var json = pm.response.json();",
+									"if (json.data && json.data.id) {",
+									"    pm.collectionVariables.set('applicationId', json.data.id);",
+									"    console.log('✅ applicationId saved: ' + json.data.id);",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{vendorToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"ownerName\": \"Rahul Sharma\",\n  \"shopName\": \"Rahul's Men Fashion\",\n  \"businessEmail\": \"rahul@fashion.com\",\n  \"businessPhone\": \"8888888888\",\n  \"description\": \"Premium menswear store — formal shirts, casual wear, and accessories\",\n  \"businessType\": \"INDIVIDUAL\",\n  \"gstin\": \"27AAAAA0000A1Z5\",\n  \"panNumber\": \"ABCDE1234F\",\n  \"shopLogoUrl\": \"https://example.com/logo.png\",\n  \"shopBannerUrl\": \"https://example.com/banner.jpg\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/vendor/application",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "application"]
+						},
+						"description": "Creates application in DRAFT status. One application per vendor.\nRequired fields: ownerName, shopName.\nAll other fields are optional at this stage."
+					}
+				},
+				{
+					"name": "2.2 Get My Application (with completion %)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{vendorToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/vendor/application",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "application"]
+						},
+						"description": "Returns full application with documents, bank, address, and completionStatus.\ncompletionStatus shows: steps completed, percentage, isReadyToSubmit."
+					}
+				},
+				{
+					"name": "2.3 Update Application",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{vendorToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"shopName\": \"Rahul's Premium Fashion\",\n  \"description\": \"Updated: Premium menswear — shirts, trousers, blazers & accessories\",\n  \"businessType\": \"PARTNERSHIP\",\n  \"gstin\": \"27BBBBB0000B1Z5\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/vendor/application",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "application"]
+						},
+						"description": "Only allowed when status is DRAFT or CHANGES_REQUESTED.\nSend only the fields you want to update."
+					}
+				},
+				{
+					"name": "2.4 Upload Document — PAN Card",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var json = pm.response.json();",
+									"if (json.data && json.data.id) {",
+									"    pm.collectionVariables.set('documentId', json.data.id);",
+									"    console.log('✅ documentId saved: ' + json.data.id);",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{vendorToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"docType\": \"PAN_CARD\",\n  \"fileUrl\": \"https://storage.example.com/kyc/pan-card-rahul.jpg\",\n  \"fileName\": \"pan-card-rahul.jpg\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/vendor/application/documents",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "application", "documents"]
+						},
+						"description": "Upload KYC document. docType values: PAN_CARD, GST_CERTIFICATE, AADHAAR, CANCELLED_CHEQUE.\nfileUrl should be a URL to the uploaded file (use your file upload endpoint first)."
+					}
+				},
+				{
+					"name": "2.5 Upload Document — GST Certificate",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{vendorToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"docType\": \"GST_CERTIFICATE\",\n  \"fileUrl\": \"https://storage.example.com/kyc/gst-cert-rahul.pdf\",\n  \"fileName\": \"gst-certificate.pdf\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/vendor/application/documents",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "application", "documents"]
+						}
+					}
+				},
+				{
+					"name": "2.6 Upload Document — Aadhaar",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{vendorToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"docType\": \"AADHAAR\",\n  \"fileUrl\": \"https://storage.example.com/kyc/aadhaar-rahul.jpg\",\n  \"fileName\": \"aadhaar-front.jpg\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/vendor/application/documents",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "application", "documents"]
+						}
+					}
+				},
+				{
+					"name": "2.7 Upload Document — Cancelled Cheque",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{vendorToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"docType\": \"CANCELLED_CHEQUE\",\n  \"fileUrl\": \"https://storage.example.com/kyc/cheque-rahul.jpg\",\n  \"fileName\": \"cancelled-cheque.jpg\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/vendor/application/documents",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "application", "documents"]
+						}
+					}
+				},
+				{
+					"name": "2.8 List My Documents",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{vendorToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/vendor/application/documents",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "application", "documents"]
+						}
+					}
+				},
+				{
+					"name": "2.9 Delete Document (PENDING only)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{vendorToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/vendor/application/documents/{{documentId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "application", "documents", "{{documentId}}"]
+						},
+						"description": "Can only delete documents in PENDING status. Verified/rejected docs cannot be deleted."
+					}
+				},
+				{
+					"name": "2.10 Save Bank Account",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var json = pm.response.json();",
+									"if (json.data && json.data.id) {",
+									"    pm.collectionVariables.set('bankAccountId', json.data.id);",
+									"    console.log('✅ bankAccountId saved: ' + json.data.id);",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{vendorToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"accountNumber\": \"50100123456789\",\n  \"ifsc\": \"HDFC0001234\",\n  \"beneficiaryName\": \"Rahul Sharma\",\n  \"bankName\": \"HDFC Bank\",\n  \"branchName\": \"Andheri West, Mumbai\",\n  \"accountType\": \"SAVINGS\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/vendor/application/bank-account",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "application", "bank-account"]
+						},
+						"description": "Add or update bank account. Upsert operation.\nRequired: accountNumber, ifsc, beneficiaryName.\nOptional: bankName, branchName, accountType (SAVINGS/CURRENT).\nOnly allowed when DRAFT or CHANGES_REQUESTED."
+					}
+				},
+				{
+					"name": "2.11 Get My Bank Account",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{vendorToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/vendor/application/bank-account",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "application", "bank-account"]
+						}
+					}
+				},
+				{
+					"name": "2.12 Save Pickup Address (with lat/lng)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var json = pm.response.json();",
+									"if (json.data && json.data.id) {",
+									"    pm.collectionVariables.set('pickupAddressId', json.data.id);",
+									"    console.log('✅ pickupAddressId saved: ' + json.data.id);",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{vendorToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"contactName\": \"Rahul Sharma\",\n  \"contactPhone\": \"8888888888\",\n  \"addressLine\": \"Shop 12, Fashion Street, Andheri West\",\n  \"landmark\": \"Near Andheri Metro Station\",\n  \"city\": \"Mumbai\",\n  \"state\": \"Maharashtra\",\n  \"pincode\": \"400058\",\n  \"country\": \"India\",\n  \"latitude\": 19.1364,\n  \"longitude\": 72.8296\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/vendor/application/pickup-address",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "application", "pickup-address"]
+						},
+						"description": "Add or update pickup address. Upsert operation.\nRequired: addressLine, city, state, pincode, latitude, longitude.\nOptional: contactName, contactPhone, landmark, country.\nOnly allowed when DRAFT or CHANGES_REQUESTED."
+					}
+				},
+				{
+					"name": "2.13 Get My Pickup Address",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{vendorToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/vendor/application/pickup-address",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "application", "pickup-address"]
+						}
+					}
+				},
+				{
+					"name": "2.14 Submit Application for Review ✈️",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{vendorToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/vendor/application/submit",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "application", "submit"]
+						},
+						"description": "Submit application for admin review.\nRequires: ownerName, shopName, bankAccount, pickupAddress.\nStatus changes: DRAFT/CHANGES_REQUESTED → SUBMITTED."
+					}
+				}
+			]
+		},
+		{
+			"name": "🛡️ 3. Admin — Application Review & Verification",
+			"description": "Admin endpoints for reviewing vendor applications.\nUses adminToken (from admin login system).",
+			"item": [
+				{
+					"name": "3.1 List All Applications (with filters)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/admin/vendor-applications?status=SUBMITTED&page=1&limit=20",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "vendor-applications"],
+							"query": [
+								{ "key": "status", "value": "SUBMITTED", "description": "Filter: DRAFT, SUBMITTED, UNDER_REVIEW, CHANGES_REQUESTED, APPROVED, REJECTED, SUSPENDED, DEACTIVATED" },
+								{ "key": "search", "value": "", "disabled": true, "description": "Search by ownerName, shopName, email, phone" },
+								{ "key": "page", "value": "1" },
+								{ "key": "limit", "value": "20" }
+							]
+						},
+						"description": "Paginated list of all vendor applications. Includes vendorUser details, document statuses, bank/address status."
+					}
+				},
+				{
+					"name": "3.2 Get Application Full Details",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/admin/vendor-applications/{{applicationId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "vendor-applications", "{{applicationId}}"]
+						},
+						"description": "Full application with vendorUser, all documents, bank, address, shop, audit logs, and completionStatus."
+					}
+				},
+				{
+					"name": "3.3 Start Review (SUBMITTED → UNDER_REVIEW)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/admin/vendor-applications/{{applicationId}}/review",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "vendor-applications", "{{applicationId}}", "review"]
+						},
+						"description": "Move application from SUBMITTED → UNDER_REVIEW. Assigns the admin as reviewer."
+					}
+				},
+				{
+					"name": "3.4 Request Changes from Vendor",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"remarks\": \"Please upload a clearer PAN card image and update your GST number. The current PAN image is blurry.\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/admin/vendor-applications/{{applicationId}}/request-changes",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "vendor-applications", "{{applicationId}}", "request-changes"]
+						},
+						"description": "Status → CHANGES_REQUESTED. Vendor can then edit and resubmit.\nRemarks are required."
+					}
+				},
+				{
+					"name": "3.5 Approve Application ✅ (Creates Shop + Activates Vendor)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"remarks\": \"All documents verified. Welcome to the marketplace!\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/admin/vendor-applications/{{applicationId}}/approve",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "vendor-applications", "{{applicationId}}", "approve"]
+						},
+						"description": "Approves the application. This triggers:\n1. Shop is auto-created (ACTIVE status) with all application data copied\n2. VendorUser status → ACTIVE\n3. Application status → APPROVED\n\nRemarks are optional."
+					}
+				},
+				{
+					"name": "3.6 Reject Application ❌",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"remarks\": \"Invalid PAN card and GST number does not match business name. Application rejected.\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/admin/vendor-applications/{{applicationId}}/reject",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "vendor-applications", "{{applicationId}}", "reject"]
+						},
+						"description": "Reject with mandatory remarks."
+					}
+				},
+				{
+					"name": "3.7 Verify Document (VERIFIED / REJECTED)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"VERIFIED\",\n  \"remarks\": \"PAN card verified successfully. Name matches application.\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/admin/vendor-documents/{{documentId}}/verify",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "vendor-documents", "{{documentId}}", "verify"]
+						},
+						"description": "Verify or reject a specific KYC document.\nstatus: VERIFIED or REJECTED"
+					}
+				},
+				{
+					"name": "3.8 Verify Bank Account (VERIFIED / REJECTED)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"VERIFIED\",\n  \"remarks\": \"Bank account verified via penny drop test. ₹1 credited and confirmed.\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/admin/vendor-bank-accounts/{{bankAccountId}}/verify",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "vendor-bank-accounts", "{{bankAccountId}}", "verify"]
+						},
+						"description": "Verify or reject bank account.\nstatus: VERIFIED or REJECTED"
+					}
+				},
+				{
+					"name": "3.9 Verify Pickup Address (VERIFIED / REJECTED)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"VERIFIED\",\n  \"remarks\": \"Address confirmed via Google Maps. Lat/Lng match pincode.\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/admin/vendor-pickup-addresses/{{pickupAddressId}}/verify",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "vendor-pickup-addresses", "{{pickupAddressId}}", "verify"]
+						},
+						"description": "Verify or reject pickup address.\nstatus: VERIFIED or REJECTED"
+					}
+				},
+				{
+					"name": "3.10 Get Audit Log",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/admin/vendor-applications/{{applicationId}}/audit-log?page=1&limit=50",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "vendor-applications", "{{applicationId}}", "audit-log"],
+							"query": [
+								{ "key": "page", "value": "1" },
+								{ "key": "limit", "value": "50" }
+							]
+						},
+						"description": "Immutable audit trail. Shows every action: create, update, status change, document upload/verify, bank verify, address verify, approval, rejection.\nIncludes old/new values and performer details."
+					}
+				}
+			]
+		},
+		{
+			"name": "🏬 4. Vendor Portal — Shop Management",
+			"description": "After admin approval. Vendor manages their shop.\nUses vendorToken.",
+			"item": [
+				{
+					"name": "4.1 Get My Shop",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{vendorToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/vendor/shop",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "shop"]
+						}
+					}
+				},
+				{
+					"name": "4.2 Update My Shop",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{vendorToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Rahul's Premium Fashion\",\n  \"description\": \"Premium menswear — shirts, trousers, blazers, and accessories\",\n  \"isOpen\": true,\n  \"logoUrl\": \"https://example.com/new-logo.png\",\n  \"bannerUrl\": \"https://example.com/new-banner.jpg\",\n  \"supportPhone\": \"8888888888\",\n  \"businessEmail\": \"support@rahulfashion.com\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/vendor/shop",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "shop"]
+						}
+					}
+				},
+				{
+					"name": "4.3 Vendor Dashboard (KPIs)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{vendorToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/vendor/dashboard",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "dashboard"]
+						},
+						"description": "Returns dashboard KPIs: total orders, revenue, pending orders, balance, etc."
+					}
+				}
+			]
+		},
+		{
+			"name": "📦 5. Vendor Portal — Products",
+			"description": "Product CRUD with variants. Uses vendorToken.",
+			"item": [
+				{
+					"name": "5.1 List My Products",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{vendorToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/vendor/products?page=1&limit=20",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "products"],
+							"query": [
+								{ "key": "page", "value": "1" },
+								{ "key": "limit", "value": "20" },
+								{ "key": "search", "value": "", "disabled": true }
+							]
+						}
+					}
+				},
+				{
+					"name": "5.2 Create Product with Variants",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var json = pm.response.json();",
+									"if (json.data && json.data.id) {",
+									"    pm.collectionVariables.set('productId', json.data.id);",
+									"    console.log('✅ productId saved: ' + json.data.id);",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{vendorToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Premium Cotton Formal Shirt\",\n  \"slug\": \"premium-cotton-formal-shirt\",\n  \"description\": \"100% Egyptian cotton formal shirt. Slim fit, wrinkle-free.\",\n  \"brand\": \"Raymond\",\n  \"fabric\": \"Cotton\",\n  \"fit\": \"Slim Fit\",\n  \"sleeve\": \"Full Sleeve\",\n  \"pattern\": \"Solid\",\n  \"categoryId\": \"<CATEGORY_ID>\",\n  \"basePrice\": 2499,\n  \"sellingPrice\": 1899,\n  \"buyingPrice\": 1200,\n  \"isActive\": true,\n  \"images\": [\n    \"https://example.com/shirt-front.jpg\",\n    \"https://example.com/shirt-back.jpg\"\n  ],\n  \"variants\": [\n    {\n      \"sku\": \"SHIRT-WHT-M\",\n      \"size\": \"M\",\n      \"color\": \"White\",\n      \"colorHex\": \"#FFFFFF\",\n      \"price\": 1899,\n      \"stockQuantity\": 50,\n      \"isActive\": true\n    },\n    {\n      \"sku\": \"SHIRT-WHT-L\",\n      \"size\": \"L\",\n      \"color\": \"White\",\n      \"colorHex\": \"#FFFFFF\",\n      \"price\": 1899,\n      \"stockQuantity\": 30,\n      \"isActive\": true\n    },\n    {\n      \"sku\": \"SHIRT-BLU-M\",\n      \"size\": \"M\",\n      \"color\": \"Navy Blue\",\n      \"colorHex\": \"#1E3A5F\",\n      \"price\": 1999,\n      \"stockQuantity\": 40,\n      \"isActive\": true\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/vendor/products",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "products"]
+						}
+					}
+				},
+				{
+					"name": "5.3 Delete Product",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{vendorToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/vendor/products/{{productId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "products", "{{productId}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "🚚 6. Vendor Portal — Orders",
+			"description": "Manage sub-orders: view, update status, process returns. Uses vendorToken.",
+			"item": [
+				{
+					"name": "6.1 List My Sub-Orders",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{vendorToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/vendor/orders?page=1&limit=20",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "orders"],
+							"query": [
+								{ "key": "status", "value": "CONFIRMED", "disabled": true, "description": "CONFIRMED, PROCESSING, SHIPPED, DELIVERED, CANCELLED" },
+								{ "key": "page", "value": "1" },
+								{ "key": "limit", "value": "20" }
+							]
+						}
+					}
+				},
+				{
+					"name": "6.2 Update → PROCESSING",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{vendorToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"PROCESSING\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/vendor/orders/{{subOrderId}}/status",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "orders", "{{subOrderId}}", "status"]
+						}
+					}
+				},
+				{
+					"name": "6.3 Update → SHIPPED (with tracking)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{vendorToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"SHIPPED\",\n  \"courierPartner\": \"Delhivery\",\n  \"trackingNumber\": \"DLV1234567890\",\n  \"trackingUrl\": \"https://www.delhivery.com/track/DLV1234567890\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/vendor/orders/{{subOrderId}}/status",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "orders", "{{subOrderId}}", "status"]
+						}
+					}
+				},
+				{
+					"name": "6.4 Update → DELIVERED",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{vendorToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"DELIVERED\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/vendor/orders/{{subOrderId}}/status",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "orders", "{{subOrderId}}", "status"]
+						}
+					}
+				},
+				{
+					"name": "6.5 Cancel Sub-Order",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{vendorToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"CANCELLED\",\n  \"cancelReason\": \"Item out of stock\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/vendor/orders/{{subOrderId}}/status",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "orders", "{{subOrderId}}", "status"]
+						}
+					}
+				},
+				{
+					"name": "6.6 Process Return Request",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{vendorToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"action\": \"APPROVE\",\n  \"remarks\": \"Return approved. Please ship the item back within 7 days.\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/vendor/orders/{{subOrderId}}/return",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "orders", "{{subOrderId}}", "return"]
+						},
+						"description": "action: APPROVE or REJECT"
+					}
+				}
+			]
+		},
+		{
+			"name": "💰 7. Vendor Portal — Payouts",
+			"description": "Request and track payouts. Uses vendorToken.",
+			"item": [
+				{
+					"name": "7.1 List My Payouts",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{vendorToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/vendor/payouts",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "payouts"]
+						}
+					}
+				},
+				{
+					"name": "7.2 Request Payout",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{vendorToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"amount\": 5000,\n  \"notes\": \"Monthly payout request — September 2026\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/vendor/payouts",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "payouts"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "📊 8. Vendor Portal — Analytics & Inventory",
+			"description": "Top products, inventory transactions, bulk stock updates. Uses vendorToken.",
+			"item": [
+				{
+					"name": "8.1 Top Products Analytics",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{vendorToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/vendor/analytics/top-products?limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "analytics", "top-products"],
+							"query": [
+								{ "key": "limit", "value": "10" }
+							]
+						}
+					}
+				},
+				{
+					"name": "8.2 Inventory Transactions",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{vendorToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/vendor/inventory/transactions?page=1&limit=20",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "inventory", "transactions"],
+							"query": [
+								{ "key": "page", "value": "1" },
+								{ "key": "limit", "value": "20" }
+							]
+						}
+					}
+				},
+				{
+					"name": "8.3 Bulk Update Inventory",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{vendorToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"updates\": [\n    {\n      \"variantId\": \"<VARIANT_ID_1>\",\n      \"quantityChange\": 50,\n      \"type\": \"RESTOCK\",\n      \"remarks\": \"New stock received from supplier\"\n    },\n    {\n      \"variantId\": \"<VARIANT_ID_2>\",\n      \"quantityChange\": -5,\n      \"type\": \"DAMAGED\",\n      \"remarks\": \"Damaged in transit\"\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/vendor/inventory/bulk-update",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "inventory", "bulk-update"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "⭐ 9. Vendor Portal — Reviews",
+			"item": [
+				{
+					"name": "9.1 Get My Shop Reviews",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{vendorToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/vendor/reviews",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "reviews"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "🚛 10. Vendor Portal — Delivery & Serviceability",
+			"description": "Configure delivery radius, service areas. Uses vendorToken.",
+			"item": [
+				{
+					"name": "10.1 Get Delivery Settings",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{vendorToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/vendor/delivery/settings",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "delivery", "settings"]
+						}
+					}
+				},
+				{
+					"name": "10.2 Update Delivery Settings",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{vendorToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"deliveryEnabled\": true,\n  \"deliveryRadiusKm\": 30,\n  \"usePincodeRules\": true,\n  \"useRegionRules\": false,\n  \"useCountryRules\": false\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/vendor/delivery/settings",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "delivery", "settings"]
+						}
+					}
+				},
+				{
+					"name": "10.3 Get Service Areas",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{vendorToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/vendor/delivery/service-areas",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "delivery", "service-areas"]
+						}
+					}
+				},
+				{
+					"name": "10.4 Add Service Areas (Bulk)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{vendorToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"areas\": [\n    { \"type\": \"PINCODE\", \"value\": \"400058\" },\n    { \"type\": \"PINCODE\", \"value\": \"400059\" },\n    { \"type\": \"PINCODE\", \"value\": \"400060\" },\n    { \"type\": \"CITY\", \"value\": \"Mumbai\" },\n    { \"type\": \"STATE\", \"value\": \"Maharashtra\" }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/vendor/delivery/service-areas/bulk",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "delivery", "service-areas", "bulk"]
+						}
+					}
+				},
+				{
+					"name": "10.5 Delete Service Area",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{vendorToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/vendor/delivery/service-areas/{{serviceAreaId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["vendor", "delivery", "service-areas", "{{serviceAreaId}}"]
+						}
+					}
+				}
+			]
+		}
+	]
+}

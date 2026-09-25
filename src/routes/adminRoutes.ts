@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { AdminController } from '../controllers/adminController';
 import { ShopController } from '../controllers/shopController';
+import { VendorApplicationController } from '../controllers/vendorApplicationController';
 import { ReviewController } from '../controllers/reviewController';
 import { DeliveryController } from '../controllers/deliveryController';
 import { authenticateToken } from '../middleware/auth';
@@ -203,4 +204,21 @@ router.put('/staff/:id/permissions', AdminController.updateStaffPermissions);
 // 25. Serviceability Diagnostic
 router.post('/serviceability/check', DeliveryController.adminDiagnosticCheck);
 
+// ==========================================
+// 26. A-Z Vendor Application Management
+// ==========================================
+router.get('/vendor-applications', VendorApplicationController.adminListApplications);
+router.get('/vendor-applications/:id', VendorApplicationController.adminGetApplication);
+router.post('/vendor-applications/:id/review', VendorApplicationController.adminStartReview);
+router.post('/vendor-applications/:id/request-changes', VendorApplicationController.adminRequestChanges);
+router.post('/vendor-applications/:id/approve', VendorApplicationController.adminApproveApplication);
+router.post('/vendor-applications/:id/reject', VendorApplicationController.adminRejectApplication);
+router.get('/vendor-applications/:id/audit-log', VendorApplicationController.adminGetAuditLog);
+
+// Vendor Document / Bank / Address Verification
+router.patch('/vendor-documents/:id/verify', VendorApplicationController.adminVerifyDocument);
+router.patch('/vendor-bank-accounts/:id/verify', VendorApplicationController.adminVerifyBankAccount);
+router.patch('/vendor-pickup-addresses/:id/verify', VendorApplicationController.adminVerifyPickupAddress);
+
 export default router;
+
