@@ -255,6 +255,8 @@ export class ShopService {
       bankBeneficiaryName,
       logoUrl,
       bannerUrl,
+      latitude,
+      longitude,
     } = data;
 
     if (!name) {
@@ -308,6 +310,8 @@ export class ShopService {
           bankBeneficiaryName: bankBeneficiaryName || null,
           logoUrl: logoUrl || null,
           bannerUrl: bannerUrl || null,
+          latitude: latitude ? parseFloat(latitude) : null,
+          longitude: longitude ? parseFloat(longitude) : null,
           status: ShopStatus.PENDING_VERIFICATION,
         },
       });
