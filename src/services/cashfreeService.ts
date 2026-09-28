@@ -85,7 +85,7 @@ export class CashfreeService {
     } catch (error: any) {
       if (error instanceof AppError) throw error;
       console.error('[CASHFREE CONNECTION ERROR]:', error);
-      throw new AppError('Unable to connect to Cashfree payment gateway');
+      throw new AppError(`Unable to connect to Cashfree payment gateway: ${error.message || 'Unknown error'}`);
     }
   }
 
