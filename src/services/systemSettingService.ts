@@ -142,6 +142,13 @@ export interface OrderReasonsConfig {
   return_reasons: string[];
 }
 
+export interface ProductConfig {
+  low_stock_threshold: number;
+  out_of_stock_behavior: 'HIDE' | 'SHOW_DISABLED' | 'ALLOW_BACKORDER';
+  max_quantity_per_order: number;
+  new_product_tag_days: number;
+}
+
 export interface PincodeServiceabilityConfig {
   default_delivery_days: string;
   cod_available_all_india: boolean;
@@ -430,6 +437,15 @@ export class SystemSettingService {
       cod_available_all_india: true,
       metro_delivery_days: '1-2 Business Days',
       express_pincodes: ['560001', '560002', '400001', '110001', '600001', '500001', '700001'],
+    });
+  }
+
+  static async getProductConfig(): Promise<ProductConfig> {
+    return this.getSetting<ProductConfig>('product_config', {
+      low_stock_threshold: 2,
+      out_of_stock_behavior: 'HIDE',
+      max_quantity_per_order: 10,
+      new_product_tag_days: 15,
     });
   }
 

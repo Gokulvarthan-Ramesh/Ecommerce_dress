@@ -176,7 +176,7 @@ export class OrderService {
     }
   }
 
-  private static attachApplicableFlags(order: any) {
+  public static attachApplicableFlags(order: any) {
     const currentDate = new Date();
     const nonCancellableStatuses = ['SHIPPED', 'DELIVERED', 'CANCELLED', 'RETURN_REQUESTED', 'RETURNED', 'RTO'];
 
