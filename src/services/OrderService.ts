@@ -180,38 +180,82 @@ export class OrderService {
     const currentDate = new Date();
     const nonCancellableStatuses = ['SHIPPED', 'DELIVERED', 'CANCELLED', 'RETURN_REQUESTED', 'RETURNED', 'RTO'];
 
-    order.isCancelApplicable = !nonCancellableStatuses.includes(order.status);
+    order.orderIsCancelApplicable = !nonCancellableStatuses.includes(order.status);
+    order.orderCancelReasonDetail = order.orderIsCancelApplicable ? null : `Order is already ${order.status.toLowerCase()}`;
     let orderReturnApplicable = false;
+    let orderReturnReasonDetail: string | null = "No items to return";
 
     if (order.subOrders) {
       order.subOrders = order.subOrders.map((sub: any) => {
-        sub.isCancelApplicable = !nonCancellableStatuses.includes(sub.status);
+        sub.subOrderIsCancelApplicable = !nonCancellableStatuses.includes(sub.status);
+        sub.subOrderCancelReasonDetail = sub.subOrderIsCancelApplicable ? null : `Sub-order is already ${sub.status.toLowerCase()}`;
         let subReturnApplicable = false;
+        let subReturnReasonDetail: string | null = null;
 
         const isNoneReturnStatus = !sub.returnStatus || sub.returnStatus === 'NONE' || sub.returnStatus === 'REJECTED' || sub.returnStatus === 'CANCELLED';
+
+        if (sub.status !== 'DELIVERED') {
+          subReturnReasonDetail = `Not delivered yet (status: ${sub.status})`;
+        } else if (!sub.deliveredAt) {
+          subReturnReasonDetail = "Delivery date is missing";
+        } else if (!isNoneReturnStatus) {
+          subReturnReasonDetail = `Return already active or resolved (status: ${sub.returnStatus})`;
+        }
 
         if (sub.status === 'DELIVERED' && sub.deliveredAt && isNoneReturnStatus) {
           const daysSinceDelivery = Math.floor((currentDate.getTime() - new Date(sub.deliveredAt).getTime()) / (1000 * 60 * 60 * 24));
           
           if (sub.items) {
+            let allItemsExpired = true;
             sub.items = sub.items.map((item: any) => {
               const returnWindowDays = item.product?.returnWindowDays ?? 2;
               const itemReturnApplicable = daysSinceDelivery <= returnWindowDays;
-              if (itemReturnApplicable) subReturnApplicable = true;
-              return { ...item, isReturnApplicable: itemReturnApplicable, isCancelApplicable: false };
+              
+              let itemReturnReasonDetail = itemReturnApplicable 
+                 ? null 
+                 : `Return window of ${returnWindowDays} days has expired (delivered ${daysSinceDelivery} days ago)`;
+
+              if (itemReturnApplicable) {
+                subReturnApplicable = true;
+                allItemsExpired = false;
+              }
+              return { 
+                 ...item, 
+                 itemIsReturnApplicable: itemReturnApplicable, 
+                 itemReturnReasonDetail: itemReturnReasonDetail,
+                 itemIsCancelApplicable: false,
+                 itemCancelReasonDetail: "Cancellation must be done at the sub-order level"
+              };
             });
+            if (allItemsExpired) {
+               subReturnReasonDetail = "Return window expired for all items";
+            }
           }
         } else {
           if (sub.items) {
-            sub.items = sub.items.map((item: any) => ({ ...item, isReturnApplicable: false, isCancelApplicable: false }));
+            sub.items = sub.items.map((item: any) => ({ 
+              ...item, 
+              itemIsReturnApplicable: false, 
+              itemReturnReasonDetail: subReturnReasonDetail,
+              itemIsCancelApplicable: false,
+              itemCancelReasonDetail: sub.subOrderCancelReasonDetail
+            }));
           }
         }
 
-        sub.isReturnApplicable = subReturnApplicable;
-        if (subReturnApplicable) orderReturnApplicable = true;
+        sub.subOrderIsReturnApplicable = subReturnApplicable;
+        sub.subOrderReturnReasonDetail = subReturnApplicable ? null : subReturnReasonDetail;
+        
+        if (subReturnApplicable) {
+            orderReturnApplicable = true;
+        }
 
         return sub;
       });
+      
+      if (!orderReturnApplicable && order.subOrders.length > 0) {
+          orderReturnReasonDetail = order.subOrders[0].subOrderReturnReasonDetail;
+      }
     }
 
     if (order.orderItems) {
@@ -219,13 +263,16 @@ export class OrderService {
         const matchedSubItem = order.subOrders?.flatMap((s: any) => s.items || []).find((si: any) => si.id === item.id);
         return { 
           ...item, 
-          isReturnApplicable: matchedSubItem ? matchedSubItem.isReturnApplicable : false,
-          isCancelApplicable: false
+          itemIsReturnApplicable: matchedSubItem ? matchedSubItem.itemIsReturnApplicable : false,
+          itemReturnReasonDetail: matchedSubItem ? matchedSubItem.itemReturnReasonDetail : null,
+          itemIsCancelApplicable: false,
+          itemCancelReasonDetail: "Cancellation must be done at the sub-order level"
         };
       });
     }
 
-    order.isReturnApplicable = orderReturnApplicable;
+    order.orderIsReturnApplicable = orderReturnApplicable;
+    order.orderReturnReasonDetail = orderReturnApplicable ? null : orderReturnReasonDetail;
     
     // Remove the redundant flat orderItems array to avoid confusing duplication 
     // since all items are perfectly grouped inside subOrders.items anyway.

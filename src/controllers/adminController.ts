@@ -83,15 +83,36 @@ export class AdminController {
     }
   }
 
+  private static async generateUniqueCategorySlug(name: string, excludeId?: string): Promise<string> {
+    const baseSlug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    let uniqueSlug = baseSlug;
+    let counter = 1;
+
+    while (true) {
+      const existing = await prisma.category.findUnique({ where: { slug: uniqueSlug } });
+      if (!existing || (excludeId && existing.id === excludeId)) {
+        break;
+      }
+      uniqueSlug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+
+    return uniqueSlug;
+  }
+
   /**
    * Create or Update Category
    */
   static async saveCategory(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { id, name, slug, description, image, imageUrl, level, sortOrder = 0, parentId, isActive = true, specificationKeys } = req.body;
+      let { id, name, slug, description, image, imageUrl, level, sortOrder = 0, parentId, isActive = true, specificationKeys, seoTitle, seoDescription, commissionRate, taxRate, deliveryRules, attributes, filters } = req.body;
 
-      if (!name || !slug) {
-        throw new AppError('Category name and unique slug are required');
+      if (!name) {
+        throw new AppError('Category name is required');
+      }
+
+      if (!slug) {
+        slug = await AdminController.generateUniqueCategorySlug(name, id);
       }
 
       const rawImg = imageUrl || image;
@@ -112,8 +133,8 @@ export class AdminController {
 
       const category = await prisma.category.upsert({
         where: { id: id || 'new-category' },
-        update: { name, slug, description, imageUrl: formattedImage, level: finalLevel, sortOrder: Number(sortOrder), parentId: parentId === 'null' ? null : parentId, isActive, specificationKeys },
-        create: { name, slug, description, imageUrl: formattedImage, level: finalLevel, sortOrder: Number(sortOrder), parentId: parentId === 'null' ? null : parentId, isActive, specificationKeys },
+        update: { name, slug, description, imageUrl: formattedImage, level: finalLevel, sortOrder: Number(sortOrder), parentId: parentId === 'null' ? null : parentId, isActive, specificationKeys, seoTitle, seoDescription, commissionRate: commissionRate ? Number(commissionRate) : null, taxRate: taxRate ? Number(taxRate) : null, deliveryRules, attributes, filters },
+        create: { name, slug, description, imageUrl: formattedImage, level: finalLevel, sortOrder: Number(sortOrder), parentId: parentId === 'null' ? null : parentId, isActive, specificationKeys, seoTitle, seoDescription, commissionRate: commissionRate ? Number(commissionRate) : null, taxRate: taxRate ? Number(taxRate) : null, deliveryRules, attributes, filters },
       });
 
       ApiResponse.success(res, category, 'Category saved successfully');
@@ -393,12 +414,32 @@ export class AdminController {
           ...features.query,
           include: {
             user: { select: { id: true, name: true, email: true, phone: true } },
-            orderItems: true,
+            orderItems: {
+              include: {
+                product: { select: { returnWindowDays: true } },
+                variant: {
+                  select: {
+                    imageUrl: true,
+                    product: { select: { slug: true } },
+                  },
+                },
+              },
+            },
             payments: true,
             subOrders: {
               include: {
                 shop: { select: { name: true, slug: true } },
-                items: true,
+                items: {
+                  include: {
+                    product: { select: { returnWindowDays: true } },
+                    variant: {
+                      select: {
+                        imageUrl: true,
+                        product: { select: { slug: true } }
+                      }
+                    }
+                  }
+                },
               }
             }
           },
@@ -407,7 +448,8 @@ export class AdminController {
 
       const limitParam = req.query.limit === 'all' || req.query.pagination === 'false' ? 'all' : parseInt(req.query.limit as string || '20', 10);
       const meta = ApiFeatures.getMeta(total, parseInt(req.query.page as string || '1', 10), limitParam as any);
-      ApiResponse.paginated(res, orders, meta);
+      const enrichedOrders = orders.map((order: any) => OrderService.attachApplicableFlags(order));
+      ApiResponse.paginated(res, enrichedOrders, meta);
     } catch (error) {
       next(error);
     }
@@ -424,14 +466,34 @@ export class AdminController {
         where: { id },
         include: {
           user: { select: { id: true, name: true, email: true, phone: true } },
-          orderItems: true,
+          orderItems: {
+            include: {
+              product: { select: { returnWindowDays: true } },
+              variant: {
+                select: {
+                  imageUrl: true,
+                  product: { select: { slug: true } },
+                },
+              },
+            },
+          },
           payments: true,
           refunds: true,
           statusHistory: { orderBy: { createdAt: 'desc' } },
           subOrders: {
             include: {
               shop: { select: { id: true, name: true, slug: true } },
-              items: true,
+              items: {
+                include: {
+                  product: { select: { returnWindowDays: true } },
+                  variant: {
+                    select: {
+                      imageUrl: true,
+                      product: { select: { slug: true } }
+                    }
+                  }
+                }
+              },
             }
           }
         },
@@ -441,7 +503,8 @@ export class AdminController {
         throw new AppError('Order not found', 404);
       }
 
-      ApiResponse.success(res, order);
+      const enrichedOrder = OrderService.attachApplicableFlags(order);
+      ApiResponse.success(res, enrichedOrder);
     } catch (error) {
       next(error);
     }
@@ -1540,13 +1603,18 @@ export class AdminController {
   static async updateCategory(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
-      const { name, slug, description, image, imageUrl, level, sortOrder, parentId, isActive, specificationKeys } = req.body;
+      let { name, slug, description, image, imageUrl, level, sortOrder, parentId, isActive, specificationKeys, seoTitle, seoDescription, commissionRate, taxRate, deliveryRules, attributes, filters } = req.body;
 
       const existing = await prisma.category.findUnique({ where: { id } });
       if (!existing) throw new AppError('Category not found', 404);
 
       const rawImg = imageUrl || image;
       let formattedImage = rawImg !== undefined ? (rawImg ? GoogleDriveService.formatToDirectImageUrl(rawImg) : null) : undefined;
+
+      // Auto-generate slug if name is updated but slug isn't explicitly provided
+      if (name && name.trim() !== '' && !slug) {
+        slug = await AdminController.generateUniqueCategorySlug(name.trim(), id);
+      }
 
       let finalLevel: number | undefined;
       let finalParentId = existing.parentId;
@@ -1577,6 +1645,13 @@ export class AdminController {
           ...(parentId !== undefined && { parentId: finalParentId }),
           ...(isActive !== undefined && { isActive }),
           ...(specificationKeys !== undefined && { specificationKeys }),
+          ...(seoTitle !== undefined && { seoTitle }),
+          ...(seoDescription !== undefined && { seoDescription }),
+          ...(commissionRate !== undefined && { commissionRate: commissionRate === null ? null : Number(commissionRate) }),
+          ...(taxRate !== undefined && { taxRate: taxRate === null ? null : Number(taxRate) }),
+          ...(deliveryRules !== undefined && { deliveryRules }),
+          ...(attributes !== undefined && { attributes }),
+          ...(filters !== undefined && { filters }),
         },
       });
 
